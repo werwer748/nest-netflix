@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateMovieDto {
   /**
@@ -6,10 +6,26 @@ export class UpdateMovieDto {
    * 두개 validator의 조건을 만족하면 통과
    */
   @IsNotEmpty()
+  @IsString()
   @IsOptional()
   title?: string;
 
   @IsNotEmpty()
+  @IsString()
   @IsOptional()
   genre?: string;
+
+  @IsNotEmpty()
+  @IsOptional()
+  detail?: string;
+
+  @IsNumber()
+  @IsOptional()
+  directorId?: number;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsNumber({}, { each: true })
+  @IsOptional()
+  genreIds?: number[];
 }

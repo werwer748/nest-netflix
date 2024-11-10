@@ -1,35 +1,48 @@
 import {
-  ChildEntity,
   Column,
-  CreateDateColumn,
   Entity,
-  PrimaryGeneratedColumn, TableInheritance,
-  UpdateDateColumn,
-  VersionColumn,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
-
-
-export class BaseEntity {
-  @CreateDateColumn() // 생성일 자동 등록
-  createdAt: Date;
-
-  @UpdateDateColumn() // 업데이트일 자동 등록
-  updatedAt: Date;
-
-  @VersionColumn() // 데이터에 변화가 생길때 마다 + 1
-  version: number;
-}
+import { BaseTimeEntity } from '../common/entity/base-time.entity';
+import { MovieDetail } from './movie-detail.entity';
+import { Director } from '../../director/entity/director.entity';
+import { Genre } from '../../genre/entities/genre.entity';
 
 @Entity()
-export class Movie extends BaseEntity{
+export class Movie extends BaseTimeEntity {
   // pk 등록
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column() // 테이블의 컬럼
+  @Column({
+    unique: true
+  })
   title: string;
 
-  @Column()
-  genre: string
+  @OneToOne(() => MovieDetail, (movieDetail) => movieDetail.movie, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    nullable: false,
+  })
+  @JoinColumn()
+  detail: MovieDetail;
 
+  @ManyToOne(
+    () => Director,
+    (director) => director.movies,
+    {
+      cascade: true,
+      nullable: false,
+    }
+  )
+  director: Director;
+
+  @ManyToMany(() => Genre, (genre) => genre.movies)
+  @JoinTable()
+  genres: Genre[];
 }
