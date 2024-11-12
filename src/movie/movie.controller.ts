@@ -1,18 +1,22 @@
 import {
   BadRequestException,
-  Body, ClassSerializerInterceptor,
+  Body,
+  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
-  Param, ParseIntPipe,
+  Param,
+  ParseIntPipe,
   Patch,
   Post,
-  Query, UseInterceptors,
+  Query, Req,
+  UseInterceptors,
 } from '@nestjs/common';
 import { MovieService } from './movie.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { MovieTitleValidationPipe } from './pipe/movie-title-validation.pipe';
+import { Request } from 'express';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -21,8 +25,10 @@ export class MovieController {
 
   @Get()
   getMovies(
-    @Query('title', MovieTitleValidationPipe) title?: string
+    @Req() req: Request,
+    @Query('title', MovieTitleValidationPipe) title?: string,
   ) {
+    console.log(req.user);
     return this.movieService.findAll(title);
   }
 
@@ -31,26 +37,28 @@ export class MovieController {
     //* 기본적인 pipe 사용법 - 라우트 메서드 적용
     // @Param('id', ParseIntPipe) id: number
     //* pipe에 대한 커스텀 에러 처리
-    @Param('id', new ParseIntPipe({
-      exceptionFactory(error) {
-        throw new BadRequestException('id는 숫자여야 합니다.');
-      }
-    })) id: number
+    @Param(
+      'id',
+      new ParseIntPipe({
+        exceptionFactory(error) {
+          throw new BadRequestException('id는 숫자여야 합니다.');
+        },
+      }),
+    )
+    id: number,
   ) {
     return this.movieService.findOne(id);
   }
 
   @Post()
   postMovie(@Body() body: CreateMovieDto) {
-    return this.movieService.create(
-      body
-    );
+    return this.movieService.create(body);
   }
 
   @Patch(':id')
   patchMovie(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: UpdateMovieDto
+    @Body() body: UpdateMovieDto,
   ) {
     return this.movieService.update(id, body);
   }
