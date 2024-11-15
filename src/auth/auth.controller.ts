@@ -1,25 +1,25 @@
 import {
-  Controller,
-  Post,
-  Headers,
-  UseInterceptors,
   ClassSerializerInterceptor,
+  Controller,
+  Get,
+  Headers,
+  Post,
   Req,
   UseGuards,
-  Get, UseFilters,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { User } from '../user/entities/user.entity';
 import { LocalAuthGuard } from './strategy/local.strategy';
 import { JwtAuthGuard } from './strategy/jwt.strategy';
-import { JwtExpiredExceptionFilter } from '../common/exception/jwt-expired.exception.filter';
 import { IReqestUser } from './interfaces/request-user.interface';
+import { Public } from './decorator/public.decorator';
 
 @Controller('auth')
 @UseInterceptors(ClassSerializerInterceptor)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('register')
   registerUser(
     // authorization: Basic ${token}
@@ -28,20 +28,17 @@ export class AuthController {
     return this.authService.register(token);
   }
 
+  @Public()
   @Post('login')
-  loginUser(
-    @Headers('authorization') token: string,
-  ) {
+  loginUser(@Headers('authorization') token: string) {
     return this.authService.login(token);
   }
 
   @Post('token/access')
-  async rotateAccessToken(
-    @Req() req: IReqestUser,
-  ) {
+  async rotateAccessToken(@Req() req: IReqestUser) {
     return {
       accessToken: await this.authService.issueToken(req.user, false),
-    }
+    };
   }
 
   @Post('login/passport')
@@ -53,15 +50,13 @@ export class AuthController {
     return {
       accessToken: await this.authService.issueToken(req.user, false),
       refreshToken: await this.authService.issueToken(req.user, true),
-    }
+    };
   }
 
   // jwt 인가 테스트용
   @Get('private')
   @UseGuards(JwtAuthGuard)
-  private(
-    @Req() req
-  ) {
+  private(@Req() req) {
     return req.user;
   }
 }
