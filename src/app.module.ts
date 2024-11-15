@@ -22,6 +22,7 @@ import { BearerTokenMiddleware } from './auth/middleware/bearer-token.middleware
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth/guard/auth.guard';
 import { RBACGuard } from './auth/guard/rbac.guard';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { RBACGuard } from './auth/guard/rbac.guard';
         database: configService.get<string>(dbVariableKeys.dbDatabase),
         entities: [Movie, MovieDetail, Director, Genre, User],
         synchronize: true,
+        // logging: true,
       }),
       inject: [ConfigService],
     }),
@@ -60,7 +62,7 @@ import { RBACGuard } from './auth/guard/rbac.guard';
     DirectorModule,
     GenreModule,
     AuthModule,
-    UserModule,
+    UserModule
   ], // 다른 모듈을 해당 모듈에서 사용할 떄 등록
   exports: [], // 해당 모듈을 등록한 모듈에서 이곳에 등록한 프로바이더의 기능을 쓸 수 있다.
   controllers: [],
@@ -73,7 +75,7 @@ import { RBACGuard } from './auth/guard/rbac.guard';
     {
       provide: APP_GUARD,
       useClass: RBACGuard
-    }
+    },
   ],
 })
 export class AppModule implements NestModule {

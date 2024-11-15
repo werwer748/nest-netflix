@@ -21,6 +21,7 @@ import { AuthGuard } from '../auth/guard/auth.guard';
 import { Public } from '../auth/decorator/public.decorator';
 import { RBAC } from '../auth/decorator/rbac.decorator';
 import { Role } from '../user/entities/user.entity';
+import { GetMoviesDto } from './dto/get-movies.dto';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -31,10 +32,11 @@ export class MovieController {
   @Get()
   getMovies(
     // @Req() req: Request,
-    @Query('title', MovieTitleValidationPipe) title?: string,
+    // @Query('title', MovieTitleValidationPipe) title?: string,
+    @Query() dto: GetMoviesDto,
   ) {
     // console.log(req.user);
-    return this.movieService.findAll(title);
+    return this.movieService.findAll(dto);
   }
 
   @Public()

@@ -24,6 +24,11 @@ export class Movie extends BaseTimeEntity {
   })
   title: string;
 
+  @Column({
+    default: 0
+  })
+  likeCount: number;
+
   @OneToOne(() => MovieDetail, (movieDetail) => movieDetail.movie, {
     cascade: true,
     onDelete: 'CASCADE',
