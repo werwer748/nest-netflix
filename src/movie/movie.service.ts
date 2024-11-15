@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { Movie } from './entity/movie.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, In, QueryRunner, Repository } from 'typeorm';
 import { MovieDetail } from './entity/movie-detail.entity';
 import { Director } from '../director/entity/director.entity';
 import { Genre } from '../genre/entities/genre.entity';
@@ -72,13 +72,7 @@ export class MovieService {
     } catch(e) { throw e; }
   }
 
-  async create(createMovieDto: CreateMovieDto) {
-    const qr = this.dataSource.createQueryRunner();
-    await qr.connect();
-    // startTransaction('isolation level') => 파라미터 없을시 DB 기본 설정
-    await qr.startTransaction();
-
-    try {
+  async create(createMovieDto: CreateMovieDto, qr: QueryRunner) {
       //* 쿼리러너의 매니저를 통해 트랜잭션을 사용 - 실행함수에 첫번째 인자로 엔티티를 넣어준다.
       const director = await qr.manager.findOne(Director, {
         where: {
@@ -140,26 +134,13 @@ export class MovieService {
         .of(movieId)
         .add(genres.map((genre) => genre.id));
 
-      await qr.commitTransaction();
-
-      // 트랜잭션 커밋 후 반환은 레포지토리에서 처리
-      return await this.movieRepository.findOne({
+      // 컨트롤러 전체에 인터셉터로 트랜잭션을 적용했기 떄문에 쿼리러너로 모든 로직을 처리해야한다.
+      return await qr.manager.findOne(Movie, {
         where: {
           id: movieId,
         },
         relations: ['detail', 'director', 'genres'],
       });
-
-      // 트랜잭션 커밋(DB에 반영)
-    } catch(e) {
-
-      // 트랜잭션 롤백(처리실패 - DB에 반영되지 않음)
-      await qr.rollbackTransaction();
-      throw e;
-    } finally {
-      // 트랜잭션을 종료하고 연결을 해제 - 풀 반환
-      await qr.release();
-    }
   }
 
   async update(id: number, updateMovieDto: UpdateMovieDto) {
