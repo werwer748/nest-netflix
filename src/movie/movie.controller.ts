@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query, Req,
+  UploadedFile, UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -24,6 +25,8 @@ import { Role } from '../user/entities/user.entity';
 import { GetMoviesDto } from './dto/get-movies.dto';
 import { CacheInterceptor } from '../common/interceptor/cache.interceptor';
 import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor';
+import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { MovieFilePipe } from './pipe/movie-file.pipe';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -32,9 +35,7 @@ export class MovieController {
 
   @Public()
   @Get()
-  getMovies(
-    @Query() dto: GetMoviesDto,
-  ) {
+  getMovies(@Query() dto: GetMoviesDto) {
     // console.log(req.user);
     return this.movieService.findAll(dto);
   }
@@ -62,10 +63,51 @@ export class MovieController {
   @RBAC([Role.admin])
   @UseGuards(AuthGuard)
   @UseInterceptors(TransactionInterceptor)
+  @UseInterceptors(
+    FileInterceptor(
+      'movie',
+      {
+        limits: {
+          fileSize: 20000000, // 20MB
+        },
+        fileFilter(
+          req: any,
+          file: {
+            fieldname: string;
+            originalname: string;
+            encoding: string;
+            mimetype: string;
+            size: number;
+            destination: string;
+            filename: string;
+            path: string;
+            buffer: Buffer;
+          },
+          // acceptFile: boolean => true: 파일 저장, false: 파일 저장 안함
+          callback: (error: Error | null, acceptFile: boolean) => void,
+        ) {
+          console.log(file);
+
+          if (file.mimetype !== 'video/mp4') {
+            return callback(
+              new BadRequestException('mp4 파일만 업로드 가능합니다.'),
+              false,
+            )
+          }
+
+          return callback(null, true);
+        },
+      },
+    ),
+  )
   postMovie(
     @Req() req,
-    @Body() body: CreateMovieDto
+    @Body() body: CreateMovieDto,
+    @UploadedFile() movie: Express.Multer.File,
   ) {
+    console.log('===================================');
+    console.log(movie);
+    console.log('===================================');
     return this.movieService.create(body, req.queryRunner);
   }
 

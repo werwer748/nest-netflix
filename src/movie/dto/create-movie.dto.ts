@@ -1,4 +1,5 @@
 import { ArrayNotEmpty, IsArray, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateMovieDto {
   /**
@@ -19,5 +20,8 @@ export class CreateMovieDto {
   @IsArray()
   @ArrayNotEmpty()
   @IsNumber({}, { each: true })
+  // FormData로 넘어오는 경우 string, number 구분을 못함
+  // => class-transformer의 @Type()을 사용해서 number로 변환해야 한다.
+  @Type(() => Number)
   genreIds: number[];
 }

@@ -1,5 +1,5 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { catchError, finalize, from, Observable, tap } from 'rxjs';
+import { catchError, finalize, from, mergeMap, Observable, tap } from 'rxjs';
 import { DataSource } from 'typeorm';
 
 @Injectable()
@@ -18,6 +18,19 @@ export class TransactionInterceptor implements NestInterceptor {
 
     req.queryRunner = qr;
 
+    return next.handle().pipe(
+      catchError(async (e) => {
+        await qr.rollbackTransaction();
+        await qr.release();
+
+        throw e;
+      }),
+      tap(async () => {
+        await qr.commitTransaction();
+        await qr.release();
+      }),
+      // finalize(() => console.log('무조건 실행되는지 테스트!!'))
+    );
     /**
      * from?
      * NestJS의 next.handle()은 일반적으로 Observable을 반환하지만,
@@ -33,19 +46,36 @@ export class TransactionInterceptor implements NestInterceptor {
      *    Observable로 변환함으로써 pipe에서 tap, catchError, finalize 같은 연산자를 이용해
      *    쉽게 에러 및 완료 처리를 할 수 있습니다
      */
-    return from(next.handle()).pipe(
-      tap({
-        next: async () => {
-          await qr.commitTransaction();
-        },
-      }),
-      catchError(async (err) => {
-        await qr.rollbackTransaction();
-        throw err;
-      }),
-      finalize(async () => {
-        await qr.release();
-      }),
-    );
+    // return from(next.handle()).pipe(
+    //   tap({
+    //     next: async () => {
+    //       await qr.commitTransaction();
+    //       // await qr.release();
+    //     },
+    //   }),
+    //   catchError(async (err) => {
+    //     await qr.rollbackTransaction();
+    //     // await qr.release();
+    //     throw err;
+    //   }),
+    //   finalize(async () => {
+    //     await qr.release();
+    //   }),
+    // );
+    // return from(next.handle()).pipe(
+    //   mergeMap(async () => {
+    //     // 트랜잭션 커밋
+    //     await qr.commitTransaction();
+    //   }),
+    //   catchError(async (err) => {
+    //     // 트랜잭션 롤백
+    //     await qr.rollbackTransaction();
+    //     throw err;
+    //   }),
+    //   finalize(async () => {
+    //     // QueryRunner 해제
+    //     await qr.release();
+    //   }),
+    // );
   }
 }
