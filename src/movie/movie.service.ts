@@ -9,6 +9,8 @@ import { Director } from '../director/entity/director.entity';
 import { Genre } from '../genre/entities/genre.entity';
 import { GetMoviesDto } from './dto/get-movies.dto';
 import { CommonService } from '../common/common.service';
+import { join } from 'path';
+import { rename } from 'fs/promises';
 
 @Injectable()
 export class MovieService {
@@ -75,7 +77,10 @@ export class MovieService {
     }
   }
 
-  async create(createMovieDto: CreateMovieDto, qr: QueryRunner) {
+  async create(
+    createMovieDto: CreateMovieDto,
+    qr: QueryRunner
+  ) {
     //* 쿼리러너의 매니저를 통해 트랜잭션을 사용 - 실행함수에 첫번째 인자로 엔티티를 넣어준다.
     const director = await qr.manager.findOne(Director, {
       where: {
@@ -113,6 +118,14 @@ export class MovieService {
     // => 생성한 movieDetail의 id를 가져온다.
     const movieDetailId = movieDetail.identifiers[0].id;
 
+    const movieFolder = join('public', 'movie');
+    const tempFolder = join('public', 'temp');
+
+    await rename(
+      join(process.cwd(), tempFolder, createMovieDto.movieFileName), // 여기있는걸
+      join(process.cwd(), movieFolder, createMovieDto.movieFileName) // 여기로 옮긴다.
+    )
+
     const movie = await qr.manager
       .createQueryBuilder()
       .insert()
@@ -124,6 +137,7 @@ export class MovieService {
           id: movieDetailId,
         },
         director,
+        movieFilePath: join(movieFolder, createMovieDto.movieFileName),
       })
       .execute();
 

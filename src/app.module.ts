@@ -25,6 +25,8 @@ import { RBACGuard } from './auth/guard/rbac.guard';
 import { ResponseTimeInterceptor } from './common/interceptor/response-time.interceptor';
 import { ForbiddenExceptionFilter } from './common/filter/forbidden.filter';
 import { QueryFailedExceptionFilter } from './common/filter/query-failed.filter';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -59,6 +61,20 @@ import { QueryFailedExceptionFilter } from './common/filter/query-failed.filter'
         // logging: true,
       }),
       inject: [ConfigService],
+    }),
+    ServeStaticModule.forRoot({
+      /**
+       * rootPath: 스태틱파일 루트 경로
+       * static file을 제공할 root path
+       * 요청 경로에 public은 빠져야 한다.
+       * => GET (/public => 여기 없이 요청해야하는 것)/movie/1.mp4
+       * => GET /movie/1.mp4 이렇게 요청하게 되는데 이러면 MovieController 라우트들과 충돌
+       *
+       * serveRoot: 서빙할 스태틱파일의 루트 경로
+       * 요청경로에 public이 붙으면 rootPath에 있는 파일을 제공한다.
+       */
+      rootPath: join(process.cwd(), 'public'),
+      serveRoot: '/public/',
     }),
     MovieModule,
     DirectorModule,

@@ -12,6 +12,7 @@ import { BaseTimeEntity } from '../../common/entity/base-time.entity';
 import { MovieDetail } from './movie-detail.entity';
 import { Director } from '../../director/entity/director.entity';
 import { Genre } from '../../genre/entities/genre.entity';
+import { Transform } from 'class-transformer';
 
 @Entity()
 export class Movie extends BaseTimeEntity {
@@ -20,14 +21,18 @@ export class Movie extends BaseTimeEntity {
   id: number;
 
   @Column({
-    unique: true
+    unique: true,
   })
   title: string;
 
   @Column({
-    default: 0
+    default: 0,
   })
   likeCount: number;
+
+  @Column()
+  @Transform(({ value }) => `http://localhost:3000/${value}`)
+  movieFilePath: string;
 
   @OneToOne(() => MovieDetail, (movieDetail) => movieDetail.movie, {
     cascade: true,
@@ -37,14 +42,10 @@ export class Movie extends BaseTimeEntity {
   @JoinColumn()
   detail: MovieDetail;
 
-  @ManyToOne(
-    () => Director,
-    (director) => director.movies,
-    {
-      cascade: true,
-      nullable: false,
-    }
-  )
+  @ManyToOne(() => Director, (director) => director.movies, {
+    cascade: true,
+    nullable: false,
+  })
   director: Director;
 
   @ManyToMany(() => Genre, (genre) => genre.movies)

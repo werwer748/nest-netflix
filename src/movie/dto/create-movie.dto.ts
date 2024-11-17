@@ -24,4 +24,7 @@ export class CreateMovieDto {
   // => class-transformer의 @Type()을 사용해서 number로 변환해야 한다.
   @Type(() => Number)
   genreIds: number[];
+
+  @IsString()
+  movieFileName: string;
 }
