@@ -4,7 +4,7 @@ import {
   JoinColumn,
   JoinTable,
   ManyToMany,
-  ManyToOne,
+  ManyToOne, OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -14,6 +14,7 @@ import { Director } from '../../director/entity/director.entity';
 import { Genre } from '../../genre/entities/genre.entity';
 import { Transform } from 'class-transformer';
 import { User } from '../../user/entities/user.entity';
+import { MovieUserLike } from './movie-user-like.entity';
 
 @Entity()
 export class Movie extends BaseTimeEntity {
@@ -55,4 +56,8 @@ export class Movie extends BaseTimeEntity {
 
   @ManyToOne(() => User, (user) => user.createdMovies)
   creator: User;
+
+  //* 좋아요 다대다 중간테이블 직접 생성한 관계 맺기
+  @OneToMany(() => MovieUserLike, (movieUserLike) => movieUserLike.movie)
+  likedUsers: MovieUserLike[];
 }

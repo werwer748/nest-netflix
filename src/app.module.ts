@@ -27,6 +27,7 @@ import { ForbiddenExceptionFilter } from './common/filter/forbidden.filter';
 import { QueryFailedExceptionFilter } from './common/filter/query-failed.filter';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { MovieUserLike } from './movie/entity/movie-user-like.entity';
 
 @Module({
   imports: [
@@ -56,7 +57,14 @@ import { join } from 'path';
         username: configService.get<string>(dbVariableKeys.dbUsername),
         password: configService.get<string>(dbVariableKeys.dbPassword),
         database: configService.get<string>(dbVariableKeys.dbDatabase),
-        entities: [Movie, MovieDetail, Director, Genre, User],
+        entities: [
+          Movie,
+          MovieDetail,
+          Director,
+          Genre,
+          User,
+          MovieUserLike,
+        ],
         synchronize: true,
         // logging: true,
       }),
@@ -80,7 +88,7 @@ import { join } from 'path';
     DirectorModule,
     GenreModule,
     AuthModule,
-    UserModule
+    UserModule,
   ], // 다른 모듈을 해당 모듈에서 사용할 떄 등록
   exports: [], // 해당 모듈을 등록한 모듈에서 이곳에 등록한 프로바이더의 기능을 쓸 수 있다.
   controllers: [],

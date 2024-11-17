@@ -11,32 +11,19 @@ import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { v4 } from 'uuid';
+import { User } from '../user/entities/user.entity';
+import { MovieUserLike } from './entity/movie-user-like.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Movie, MovieDetail, Director, Genre]),
-    // MulterModule.register({
-    //   storage: diskStorage({
-    //     // process.cwd(): 현재 프로젝트의 root directory
-    //     destination: join(process.cwd(), 'public', 'movie'),
-    //     filename(
-    //       req,
-    //       file: Express.Multer.File,
-    //       callback: (error: Error | null, filename: string) => void,
-    //     ) {
-    //       const split = file.originalname.split('.');
-    //
-    //       let extension = 'mp4';
-    //
-    //       if (split.length > 1) {
-    //         extension = split.at(-1);
-    //       }
-    //
-    //       //* callback(에러, 파일명)
-    //       callback(null, `${v4()}_${Date.now()}.${extension}`);
-    //     },
-    //   })
-    // }),
+    TypeOrmModule.forFeature([
+      Movie,
+      MovieDetail,
+      Director,
+      Genre,
+      User,
+      MovieUserLike,
+    ]),
     CommonModule,
   ],
   controllers: [MovieController],

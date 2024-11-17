@@ -38,9 +38,12 @@ export class MovieController {
 
   @Public()
   @Get()
-  getMovies(@Query() dto: GetMoviesDto) {
+  getMovies(
+    @Query() dto: GetMoviesDto,
+    @UserId() userId?: number,
+  ) {
     // console.log(req.user);
-    return this.movieService.findAll(dto);
+    return this.movieService.findAll(dto, userId);
   }
 
   @Public()
@@ -91,5 +94,22 @@ export class MovieController {
   @RBAC([Role.admin])
   deleteMovie(@Param('id', ParseIntPipe) id: number) {
     return this.movieService.delete(id);
+  }
+
+  //* 좋아요!
+  @Post(':id/like')
+  createMovieLike(
+    @Param('id', ParseIntPipe) movieId: number,
+    @UserId() userId: number,
+  ) {
+    return this.movieService.toggleMovieLike(movieId, userId, true);
+  }
+  //* 별로에요!
+  @Post(':id/dislike')
+  createMovieDisLike(
+    @Param('id', ParseIntPipe) movieId: number,
+    @UserId() userId: number,
+  ) {
+    return this.movieService.toggleMovieLike(movieId, userId, false);
   }
 }
