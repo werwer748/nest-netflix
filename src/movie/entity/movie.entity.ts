@@ -13,6 +13,7 @@ import { MovieDetail } from './movie-detail.entity';
 import { Director } from '../../director/entity/director.entity';
 import { Genre } from '../../genre/entities/genre.entity';
 import { Transform } from 'class-transformer';
+import { User } from '../../user/entities/user.entity';
 
 @Entity()
 export class Movie extends BaseTimeEntity {
@@ -51,4 +52,7 @@ export class Movie extends BaseTimeEntity {
   @ManyToMany(() => Genre, (genre) => genre.movies)
   @JoinTable()
   genres: Genre[];
+
+  @ManyToOne(() => User, (user) => user.createdMovies)
+  creator: User;
 }

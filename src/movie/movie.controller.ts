@@ -27,6 +27,9 @@ import { CacheInterceptor } from '../common/interceptor/cache.interceptor';
 import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor';
 import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { MovieFilePipe } from './pipe/movie-file.pipe';
+import { UserId } from '../user/decorator/user-id.decorator';
+import { QueryRuunerDeco } from '../common/decorator/query-runner.decorator';
+import { QueryRunner } from 'typeorm';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -64,12 +67,14 @@ export class MovieController {
   @UseGuards(AuthGuard)
   @UseInterceptors(TransactionInterceptor)
   postMovie(
-    @Req() req,
+    @QueryRuunerDeco() qr: QueryRunner,
     @Body() body: CreateMovieDto,
+    @UserId() userId: number,
   ) {
     return this.movieService.create(
       body,
-      req.queryRunner
+      userId,
+      qr
     );
   }
 

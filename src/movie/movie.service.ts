@@ -64,6 +64,7 @@ export class MovieService {
         .leftJoinAndSelect('movie.director', 'director')
         .leftJoinAndSelect('movie.genres', 'genres')
         .leftJoinAndSelect('movie.detail', 'detail')
+        .leftJoinAndSelect('movie.creator', 'creator')
         .where('movie.id = :id', { id })
         .getOne();
 
@@ -79,6 +80,7 @@ export class MovieService {
 
   async create(
     createMovieDto: CreateMovieDto,
+    userId: number,
     qr: QueryRunner
   ) {
     //* 쿼리러너의 매니저를 통해 트랜잭션을 사용 - 실행함수에 첫번째 인자로 엔티티를 넣어준다.
@@ -121,11 +123,6 @@ export class MovieService {
     const movieFolder = join('public', 'movie');
     const tempFolder = join('public', 'temp');
 
-    await rename(
-      join(process.cwd(), tempFolder, createMovieDto.movieFileName), // 여기있는걸
-      join(process.cwd(), movieFolder, createMovieDto.movieFileName) // 여기로 옮긴다.
-    )
-
     const movie = await qr.manager
       .createQueryBuilder()
       .insert()
@@ -137,6 +134,9 @@ export class MovieService {
           id: movieDetailId,
         },
         director,
+        creator: {
+          id: userId,
+        },
         movieFilePath: join(movieFolder, createMovieDto.movieFileName),
       })
       .execute();
@@ -150,6 +150,11 @@ export class MovieService {
       .relation(Movie, 'genres')
       .of(movieId)
       .add(genres.map((genre) => genre.id));
+
+    await rename(
+      join(process.cwd(), tempFolder, createMovieDto.movieFileName), // 여기있는걸
+      join(process.cwd(), movieFolder, createMovieDto.movieFileName) // 여기로 옮긴다.
+    )
 
     // 컨트롤러 전체에 인터셉터로 트랜잭션을 적용했기 떄문에 쿼리러너로 모든 로직을 처리해야한다.
     return await qr.manager.findOne(Movie, {
