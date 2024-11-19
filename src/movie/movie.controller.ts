@@ -28,24 +28,19 @@ import { QueryRuunerDeco } from '../common/decorator/query-runner.decorator';
 import { QueryRunner } from 'typeorm';
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { ThrottleDecorator } from '../common/decorator/throttle.decorator';
+import {
+  ApiBearerAuth,
+  ApiExcludeController,
+  ApiExcludeEndpoint,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
-// V2 컨트롤러를 생성해줌 - 테스트용
-@Controller({
-  path: 'movie',
-  version: '2',
-})
-export class MovieControllerV2 {
-  @Get()
-  getMovies() {
-    return '영화 목록 V2';
-  }
-}
-
-@Controller({
-  path: 'movie',
-  // version: '1'
-  version: VERSION_NEUTRAL,
-})
+@Controller('movie')
+@ApiBearerAuth()
+@ApiTags('movie')
+// @ApiExcludeController()
 @UseInterceptors(ClassSerializerInterceptor)
 export class MovieController {
   constructor(private readonly movieService: MovieService) {}
@@ -56,8 +51,17 @@ export class MovieController {
     count: 5,
     unit: 'minute',
   })
-  // 라우트에만 버전을 적용 => 배열로 여러 버전도 적용 가능:: 컨트롤러의 버저닝설정을 오버라이드(해당 설정이 우선됨)
-  // @Version('5')
+  @ApiOperation({
+    description: '[Movie] 를 Pagination 하는 API',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '성공',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Pagination 파라미터 잘못입력했을때',
+  })
   getMovies(@Query() dto: GetMoviesDto, @UserId() userId?: number) {
     // console.log(req.user);
     return this.movieService.findAll(dto, userId);
@@ -138,6 +142,7 @@ export class MovieController {
   }
 
   //* 좋아요!
+  // @ApiExcludeEndpoint()
   @Post(':id/like')
   createMovieLike(
     @Param('id', ParseIntPipe) movieId: number,

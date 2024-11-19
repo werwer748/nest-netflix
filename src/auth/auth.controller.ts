@@ -14,24 +14,30 @@ import { LocalAuthGuard } from './strategy/local.strategy';
 import { JwtAuthGuard } from './strategy/jwt.strategy';
 import { IReqestUser } from './interfaces/request-user.interface';
 import { Public } from './decorator/public.decorator';
+import { ApiBasicAuth, ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuthorizationDecorator } from './decorator/authorization.decorator';
 
 @Controller('auth')
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiBearerAuth()
+@ApiTags('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @ApiBasicAuth() // 요청의 헤더에 Basic 토큰을 실어준다.
   @Post('register')
   registerUser(
     // authorization: Basic ${token}
-    @Headers('authorization') token: string,
+    @AuthorizationDecorator() token: string,
   ) {
     return this.authService.register(token);
   }
 
   @Public()
+  @ApiBasicAuth()
   @Post('login')
-  loginUser(@Headers('authorization') token: string) {
+  loginUser(@AuthorizationDecorator() token: string) {
     return this.authService.login(token);
   }
 

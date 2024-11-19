@@ -3,6 +3,7 @@ import { BaseTimeEntity } from '../../common/entity/base-time.entity';
 import { Exclude } from 'class-transformer';
 import { Movie } from '../../movie/entity/movie.entity';
 import { MovieUserLike } from '../../movie/entity/movie-user-like.entity';
+import { ApiHideProperty } from '@nestjs/swagger';
 
 export enum Role {
   admin = 'admin',

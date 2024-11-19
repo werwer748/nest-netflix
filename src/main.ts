@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -12,6 +13,27 @@ async function bootstrap() {
     // 커스텀한로그(ConsoleLogger를 상속받은 클래스)를 사용하는 방법
     // logger: new DefaultLogger(),
 
+  });
+
+  //* swagger 세팅하기
+  const config = new DocumentBuilder()
+    .setTitle('코드팩토리 넷플릭스')
+    .setDescription('NestJS 강좌를 수강중입니다.')
+    // 문서의 버전을 명시 - api 버전과는 다름(버전별로 따로 스웨거를 띄우는게 가능하다고 함)
+    .setVersion('1.0')
+    // Basic Auth (Base64 인코딩 로그인 로직)
+    .addBasicAuth()
+    // Bearer Auth (JWT 토큰 로그인 로직)
+    .addBearerAuth()
+    .build();
+  //* 스웨거 문서를 생성
+  const document = SwaggerModule.createDocument(app, config);
+  //* /doc 경로로 접속하면 스웨거 문서를 볼 수 있다.
+  SwaggerModule.setup('doc', app, document, {
+    swaggerOptions: {
+      // 새로고침해도 스웨거인증(로그인) 유지
+      persistAuthorization: true,
+    }
   });
 
   // 모든 요청에 기본적인 prefix를 추가할 수 있다.
@@ -33,11 +55,11 @@ async function bootstrap() {
   // });
 
   //* Media Type Versioning
-  app.enableVersioning({
-    type: VersioningType.MEDIA_TYPE,
-    // 미디어타입 벨류 뒤쪽에 쿼리처럼 붙어서 오는 버전의 키
-    key: 'v=',
-  });
+  // app.enableVersioning({
+  //   type: VersioningType.MEDIA_TYPE,
+  //   // 미디어타입 벨류 뒤쪽에 쿼리처럼 붙어서 오는 버전의 키
+  //   key: 'v=',
+  // });
 
 
   // winston을 사용한 로깅을 위한 설정

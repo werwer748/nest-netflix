@@ -184,16 +184,10 @@ export class AppModule implements NestModule {
         {
           path: 'auth/register',
           method: RequestMethod.POST,
-          /**
-           * app.enableVersioning에 defaultVersion을 설정하면
-           * 여기에도 맞춰서 설정을 해줘야 한다.
-            */
-          // version: ['1', '2'],
         },
         {
           path: 'auth/login',
           method: RequestMethod.POST,
-          // version: ['1', '2'],
         },
       )
       // 모든 경로에 적용
