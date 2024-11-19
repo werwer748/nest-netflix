@@ -3,7 +3,15 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    // 로그에 대한 설정을 변경할 수 있다.
+    // logger: false
+    // ['debug']로 설정한 경우 debug 레벨 이상의 로그만 출력된다.
+    logger: ['debug'],
+    // 커스텀한로그(ConsoleLogger를 상속받은 클래스)를 사용하는 방법
+    // logger: new DefaultLogger(),
+
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
