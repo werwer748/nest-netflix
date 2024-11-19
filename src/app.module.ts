@@ -31,6 +31,9 @@ import { MovieUserLike } from './movie/entity/movie-user-like.entity';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottleInterceptor } from './common/interceptor/throttle.interceptor';
 import { ScheduleModule } from '@nestjs/schedule';
+import { WinstonModule } from 'nest-winston';
+// winston을 import
+import * as winston from 'winston';
 
 @Module({
   imports: [
@@ -94,6 +97,40 @@ import { ScheduleModule } from '@nestjs/schedule';
       isGlobal: true,
     }),
     ScheduleModule.forRoot(),
+    WinstonModule.forRoot({
+      // 로깅 레벨 설정
+      level: 'debug',
+      // 로그를 어디로 출력할지 설정
+      transports: [
+        // Console에 출력하는 방법 설정
+        new winston.transports.Console({
+          format: winston.format.combine(
+            // 로그 색상 처리
+            winston.format.colorize({ all: true }),
+            // formant.printf에 timestamp를 전달
+            winston.format.timestamp(),
+            // 로그 출력 형식 -> info: [Object object]
+            winston.format.printf(info => `${info.timestamp} [${info.context}] ${info.level}: ${info.message}`),
+
+          )
+        }),
+        // 파일을 남기는 방법을 설정
+        new winston.transports.File({
+          dirname: join(process.cwd(), 'logs'),
+          filename: 'logs.log',
+          format: winston.format.combine(
+            // 로그 색상이 파일로 남기면 이상한 문자열로 처리되서 주석
+            // winston.format.colorize({ all: true }),
+
+            // formant.printf에 timestamp를 전달
+            winston.format.timestamp(),
+            // 로그 출력 형식 -> info: [Object object]
+            winston.format.printf(info => `${info.timestamp} [${info.context}] ${info.level}: ${info.message}`),
+
+          )
+        }),
+      ],
+    }),
     MovieModule,
     DirectorModule,
     GenreModule,

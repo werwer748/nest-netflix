@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, LoggerService } from '@nestjs/common';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { readdir, unlink } from 'node:fs/promises';
 import { join, parse } from 'path';
@@ -7,6 +7,7 @@ import { Movie } from '../movie/entity/movie.entity';
 import { Repository } from 'typeorm';
 import { Logger } from '@nestjs/common';
 import { DefaultLogger } from './logger/default.logger';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 @Injectable()
 export class TasksService {
@@ -19,24 +20,34 @@ export class TasksService {
     private readonly movieRepository: Repository<Movie>,
     // 다이나믹 스케줄링을 사용하려면 SchedulerRegistry를 주입받아야 한다.
     private readonly schedulerRegistry: SchedulerRegistry,
-    private readonly logger: DefaultLogger,
+    // private readonly logger: DefaultLogger,
+    //* winston을 사용한 로깅을 위해 주입받아야 한다.
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService
   ) {}
 
   //* 매초마다 실행되는거 확인하기
   // @Cron('*/5 * * * * *')
   logEverySecond() {
     /**
+     * 기본 Nest Logger 사용
      * 콘솔창에 로그 확인
      * [Nest] '프로세스아이디' - '로깅 시간' '로깅레벨' ['컨텍스트(new Logger(TasksService.name))'] 1초마다 실행!!
-     * logger.[로긍레벨] => 로깅할 레벨을 지정할 수 있다.
+     * logger.[로그레벨] => 로깅할 레벨을 지정할 수 있다.
      * fatal > error > warn > log(정보성 info와 같음) > debug > verbose
      */
-    this.logger.fatal('FATAL 레벨 로그');
-    this.logger.error('ERROR 레벨 로그');
-    this.logger.warn('WARN 레벨 로그');
-    this.logger.log('LOG 레벨 로그');
-    this.logger.debug('DEBUG 레벨 로그');
-    this.logger.verbose('VERBOSE 레벨 로그');
+
+    /**
+     * winston 사용
+     * logger.[로그레벨](로그내용, 컨텍스트) => 올바른 컨텍스트정보를 포함한 로그를 볼 수 있다.
+     * error와 fatal 은 logger.[로그레벨](로그내용, 에러의 실제 스택트레이스나 메시지, 컨텍스트)
+     */
+    this.logger.fatal('FATAL 레벨 로그', null, TasksService.name);
+    this.logger.error('ERROR 레벨 로그', null, TasksService.name);
+    this.logger.warn('WARN 레벨 로그', TasksService.name);
+    this.logger.log('LOG 레벨 로그', TasksService.name);
+    this.logger.debug('DEBUG 레벨 로그', TasksService.name);
+    this.logger.verbose('VERBOSE 레벨 로그', TasksService.name);
   }
 
   // @Cron('* * * * * *')
