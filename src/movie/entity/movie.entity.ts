@@ -32,6 +32,11 @@ export class Movie extends BaseTimeEntity {
   })
   likeCount: number;
 
+  @Column({
+    default: 0,
+  })
+  disLikeCount: number;
+
   @Column()
   @Transform(({ value }) => `http://localhost:3000/${value}`)
   movieFilePath: string;

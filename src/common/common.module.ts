@@ -5,9 +5,15 @@ import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { v4 } from 'uuid';
+import { TasksService } from './tasks.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Movie } from '../movie/entity/movie.entity';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([
+      Movie
+    ]),
     MulterModule.register({
       storage: diskStorage({
         // process.cwd(): 현재 프로젝트의 root directory
@@ -32,7 +38,7 @@ import { v4 } from 'uuid';
     }),
   ],
   controllers: [CommonController],
-  providers: [CommonService],
+  providers: [CommonService, TasksService],
   exports: [CommonService],
 })
 export class CommonModule {}
