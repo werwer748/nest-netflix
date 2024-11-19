@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { Movie } from './entity/movie.entity';
@@ -13,6 +13,7 @@ import { join } from 'path';
 import { rename } from 'fs/promises';
 import { User } from '../user/entities/user.entity';
 import { MovieUserLike } from './entity/movie-user-like.entity';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
 @Injectable()
 export class MovieService {
@@ -32,7 +33,40 @@ export class MovieService {
     //* typeorm에서 import
     private readonly dataSource: DataSource,
     private readonly commonService: CommonService,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
   ) {}
+
+  async findRecent() {
+    /**
+     * 캐시 기본 사용법
+     * // number라는 키에 10이라는 값을 저장
+     * // 저장시간(TTL)을 지정안하고 set하면 데이터가 금방 사라진다.
+     * await this.cacheManager.set('number', 10);
+     *
+     * // number라는 키에 저장된 값을 가져온다.
+     * const data = await this.cacheManager.get('number'); // 10
+     */
+
+    const cacheData = await this.cacheManager.get('MOVIE_RECENT');
+
+    if (cacheData) {
+      return cacheData;
+    }
+
+    const data = await this.movieRepository.find({
+      order: {
+        createdAt: 'DESC',
+      },
+      take: 10,
+    });
+
+    // TTL을 0으로 설정하면 영구적으로 저장된다. - 서비스 단에서도 그때 그때 TTL을 설정할 수 있다.
+    // 이 경우 모듈 등록의 설정을 덮어 씌운다.
+    await this.cacheManager.set('MOVIE_RECENT', data);
+
+    return data;
+  }
 
   async findAll(dto: GetMoviesDto, userId?: number) {
     const { title } = dto;

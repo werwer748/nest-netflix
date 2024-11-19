@@ -23,27 +23,60 @@ import { Public } from '../auth/decorator/public.decorator';
 import { RBAC } from '../auth/decorator/rbac.decorator';
 import { Role } from '../user/entities/user.entity';
 import { GetMoviesDto } from './dto/get-movies.dto';
-import { CacheInterceptor } from '../common/interceptor/cache.interceptor';
 import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor';
 import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { MovieFilePipe } from './pipe/movie-file.pipe';
 import { UserId } from '../user/decorator/user-id.decorator';
 import { QueryRuunerDeco } from '../common/decorator/query-runner.decorator';
 import { QueryRunner } from 'typeorm';
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
+import { ThrottleDecorator } from '../common/decorator/throttle.decorator';
 
 @Controller('movie')
 @UseInterceptors(ClassSerializerInterceptor)
 export class MovieController {
   constructor(private readonly movieService: MovieService) {}
 
-  @Public()
   @Get()
+  @Public()
+  @ThrottleDecorator({
+    count: 5,
+    unit: 'minute'
+  })
   getMovies(
     @Query() dto: GetMoviesDto,
     @UserId() userId?: number,
   ) {
     // console.log(req.user);
     return this.movieService.findAll(dto, userId);
+  }
+
+  @Get('recent')
+  /**
+   * CacheInterceptor => '@nestjs/cache-manager'
+   * 자동으로 해당 라우트의 응답을 캐싱해준다.
+   * 쿼리 파라미터가 바뀌면 다른 캐시데이터로 저장하고 불러온다.
+   * 설정은 기본적으로 CacheModule.register()의 설정을 가져온다.
+   * => 컨트롤러단에 사용해서 모든 요청에 적용할 수도 있다
+   */
+  @UseInterceptors(CacheInterceptor)
+  /**
+   * CacheKey => '@nestjs/cache-manager'
+   * 캐시키를 설정해서 해당 요청으로 들어오는 모든 데이터를
+   * 이 캐시키 하나로 관리함
+   * 즉 해당 요청은 ttl시간동안 같은 데이터를 보여준다.
+   * 쿼리 파라미터가 바뀌어도 getMoviesRecent키에만 저장된다.
+   */
+  @CacheKey('getMoviesRecent')
+  /**
+   * CacheTTL => '@nestjs/cache-manager'
+   * 캐시의 유지시간을 어노테이션으로 설정할 수 있다.
+   * milisecond 단위로 설정한다.
+   * => 1000ms = 1초
+   */
+  @CacheTTL(1000)
+  getMoviesRecent() {
+    return this.movieService.findRecent();
   }
 
   @Public()
