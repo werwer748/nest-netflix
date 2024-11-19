@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
@@ -14,8 +14,34 @@ async function bootstrap() {
 
   });
 
+  // 모든 요청에 기본적인 prefix를 추가할 수 있다.
+  // app.setGlobalPrefix('v1')
+
+  //* api 버전이 바뀔 때 편하게 사용할 수 있는 방법
+  //* URI Versioning
+  // app.enableVersioning({
+  //   type: VersioningType.URI,
+  //   // 단일 사용시 문자열, 여러 버전을 둘 때는 []
+  //   // defaultVersion: ['1', '2'] // 요청시 URL에 v1, v2를 붙여서 요청해야 함
+  // });
+
+  //* Header Versioning
+  // app.enableVersioning({
+  //   type: VersioningType.HEADER,
+  //   // 헤더에 버전을 담을 키의 이름을 설정
+  //   header: 'version'
+  // });
+
+  //* Media Type Versioning
+  app.enableVersioning({
+    type: VersioningType.MEDIA_TYPE,
+    // 미디어타입 벨류 뒤쪽에 쿼리처럼 붙어서 오는 버전의 키
+    key: 'v=',
+  });
+
+
   // winston을 사용한 로깅을 위한 설정
-  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER))
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   app.useGlobalPipes(
     new ValidationPipe({
