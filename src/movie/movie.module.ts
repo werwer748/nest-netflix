@@ -7,7 +7,7 @@ import { MovieDetail } from './entity/movie-detail.entity';
 import { Director } from '../director/entity/director.entity';
 import { Genre } from '../genre/entities/genre.entity';
 import { CommonModule } from '../common/common.module';
-import { User } from '../user/entities/user.entity';
+import { User } from '../user/entity/user.entity';
 import { MovieUserLike } from './entity/movie-user-like.entity';
 
 @Module({

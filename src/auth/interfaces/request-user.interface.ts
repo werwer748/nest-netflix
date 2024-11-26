@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { User } from '../../user/entities/user.entity';
+import { User } from '../../user/entity/user.entity';
 
 
 export interface IReqestUser extends Request {

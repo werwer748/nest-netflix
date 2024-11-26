@@ -1,6 +1,6 @@
 import { Column, Entity, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { Movie } from './movie.entity';
-import { User } from '../../user/entities/user.entity';
+import { User } from '../../user/entity/user.entity';
 
 //* 좋아요 다대다 중간테이블 직접 생성한 관계 맺기
 @Entity()

@@ -13,7 +13,7 @@ import { MovieDetail } from './movie-detail.entity';
 import { Director } from '../../director/entity/director.entity';
 import { Genre } from '../../genre/entities/genre.entity';
 import { Transform } from 'class-transformer';
-import { User } from '../../user/entities/user.entity';
+import { User } from '../../user/entity/user.entity';
 import { MovieUserLike } from './movie-user-like.entity';
 
 @Entity()

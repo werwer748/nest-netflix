@@ -1,18 +1,20 @@
 import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Role, User } from '../user/entities/user.entity';
+import { Role, User } from '../user/entity/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { authVariableKeys } from '../common/const/auth.const';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly userService: UserService,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     @Inject(CACHE_MANAGER)
@@ -102,30 +104,9 @@ export class AuthService {
   async register(rawToken: string) {
     const { email, password } = this.parseBasicToken(rawToken);
 
-    const checkEmail = await this.userRepository.exists({
-      where: {
-        email,
-      },
-    });
-
-    if (checkEmail) {
-      throw new BadRequestException('이미 존재하는 이메일입니다!');
-    }
-
-    const hash = await bcrypt.hash(
-      password,
-      this.configService.get<number>(authVariableKeys.hashRounds),
-    );
-
-    await this.userRepository.save({
+    return this.userService.create({
       email,
-      password: hash,
-    });
-
-    return this.userRepository.findOne({
-      where: {
-        email,
-      },
+      password,
     });
   }
 
