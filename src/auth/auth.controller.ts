@@ -45,7 +45,7 @@ export class AuthController {
   blockToken(
     @Body('token') token: string,
   ) {
-    return this.authService.tokenBock(token);
+    return this.authService.tokenBlock(token);
   }
 
   @Post('token/access')
@@ -68,9 +68,9 @@ export class AuthController {
   }
 
   // jwt 인가 테스트용
-  @Get('private')
-  @UseGuards(JwtAuthGuard)
-  private(@Req() req) {
-    return req.user;
-  }
+  // @Get('private')
+  // @UseGuards(JwtAuthGuard)
+  // private(@Req() req) {
+  //   return req.user;
+  // }
 }

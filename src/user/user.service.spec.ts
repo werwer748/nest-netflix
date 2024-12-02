@@ -110,6 +110,7 @@ describe("UserService", () => {
       );
 
       // 호출 여부 검증
+      //
       expect(mockUserRepository.findOne).not.toHaveBeenCalledWith({
         where: { email: createUserDto.email },
       });

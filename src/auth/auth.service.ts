@@ -21,7 +21,7 @@ export class AuthService {
     private readonly cacheManager: Cache,
   ) {}
 
-  async tokenBock(token: string) {
+  async tokenBlock(token: string) {
     // 토큰 블록 처리용이라 검증할 필요는 없음
     const payload = this.jwtService.decode(token);
 

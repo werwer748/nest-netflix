@@ -104,6 +104,7 @@ export class MovieController {
     @Param(
       'id',
       new ParseIntPipe({
+        /* istanbul ignore next */
         exceptionFactory(error) {
           throw new BadRequestException('id는 숫자여야 합니다.');
         },

@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { Movie } from './entity/movie.entity';
@@ -68,14 +68,20 @@ export class MovieService {
     return data;
   }
 
+  //* 모든 코드를 테스트할 필요는 없음. 아래 주석으로 테스트하지 않을 코드임을 jest에게 알림
+  /* istanbul ignore next */
+  async getMovies() {
+    return this.movieRepository
+      .createQueryBuilder('movie')
+      .leftJoinAndSelect('movie.director', 'director')
+      .leftJoinAndSelect('movie.genres', 'genres');
+  }
+
   async findAll(dto: GetMoviesDto, userId?: number) {
     const { title } = dto;
 
     //* Query Builder
-    const qb = this.movieRepository
-      .createQueryBuilder('movie')
-      .leftJoinAndSelect('movie.director', 'director')
-      .leftJoinAndSelect('movie.genres', 'genres');
+    const qb = await this.getMovies();
 
     if (title) {
       qb.where('movie.title LIKE :title', { title: `%${title}%` });
@@ -118,7 +124,8 @@ export class MovieService {
     };
   }
 
-  private async getLikedMovies(movieIds: number[], userId: number) {
+  /* istanbul ignore next */
+  async getLikedMovies(movieIds: number[], userId: number) {
     return await this.movieUserLikeRepository
       .createQueryBuilder('mul')
       .leftJoinAndSelect('mul.movie', 'movie')
@@ -129,16 +136,21 @@ export class MovieService {
       .getMany();
   }
 
+  /* istanbul ignore next */
+  async findMovieDetail(id: number) {
+    return this.movieRepository
+      .createQueryBuilder('movie')
+      .leftJoinAndSelect('movie.director', 'director')
+      .leftJoinAndSelect('movie.genres', 'genres')
+      .leftJoinAndSelect('movie.detail', 'detail')
+      .leftJoinAndSelect('movie.creator', 'creator')
+      .where('movie.id = :id', { id })
+      .getOne();
+  }
+
   async findOne(id: number) {
     try {
-      const movie = await this.movieRepository
-        .createQueryBuilder('movie')
-        .leftJoinAndSelect('movie.director', 'director')
-        .leftJoinAndSelect('movie.genres', 'genres')
-        .leftJoinAndSelect('movie.detail', 'detail')
-        .leftJoinAndSelect('movie.creator', 'creator')
-        .where('movie.id = :id', { id })
-        .getOne();
+      const movie = await this.findMovieDetail(id);
 
       if (!movie) {
         throw new NotFoundException('그 영화 없어요');
@@ -148,6 +160,67 @@ export class MovieService {
     } catch (e) {
       throw e;
     }
+  }
+
+  /* istanbul ignore next */
+  async createMovieDetail(qr: QueryRunner, createMovieDto: CreateMovieDto) {
+    return qr.manager
+      .createQueryBuilder()
+      .insert()
+      .into(MovieDetail)
+      .values({
+        detail: createMovieDto.detail,
+      })
+      .execute();
+  }
+
+  /* istanbul ignore next */
+  async createMovie(
+    qr: QueryRunner,
+    createMovieDto: CreateMovieDto,
+    movieDetailId: number,
+    director: Director,
+    userId: number,
+    movieFolder: string,
+  ) {
+    return qr.manager
+      .createQueryBuilder()
+      .insert()
+      .into(Movie)
+      .values({
+        title: createMovieDto.title,
+        // => 따로 생성한 movieDetail의 id를 넣어준다.
+        detail: {
+          id: movieDetailId,
+        },
+        director,
+        creator: {
+          id: userId,
+        },
+        movieFilePath: join(movieFolder, createMovieDto.movieFileName),
+      })
+      .execute();
+  }
+
+  /* istanbul ignore next */
+  createMovieGenreRelation(
+    qr: QueryRunner,
+    movieId: number,
+    genres: Genre[],
+  ) {
+    return qr.manager
+      .createQueryBuilder()
+      .relation(Movie, 'genres')
+      .of(movieId)
+      .add(genres.map((genre) => genre.id));
+  }
+
+  /* istanbul ignore next */
+  renameMovieFile(tempFolder: string, movieFolder: string, createMovieDto: CreateMovieDto) {
+    return rename(
+      join(process.cwd(), tempFolder, createMovieDto.movieFileName), // 여기있는걸
+      join(process.cwd(), movieFolder, createMovieDto.movieFileName), // 여기로 옮긴다.
+    );
   }
 
   async create(
@@ -180,14 +253,7 @@ export class MovieService {
 
     //* 메니저를 통해 쿼리빌더를 수행한경우는 엔티티를 명시하지않아도 됨
     //* => 어차피 쿼리빌더내에 체이닝 메서드에 엔티티를 명시해야하기 때문
-    const movieDetail = await qr.manager
-      .createQueryBuilder()
-      .insert()
-      .into(MovieDetail)
-      .values({
-        detail: createMovieDto.detail,
-      })
-      .execute();
+    const movieDetail = await this.createMovieDetail(qr, createMovieDto);
 
     // => 생성한 movieDetail의 id를 가져온다.
     const movieDetailId = movieDetail.identifiers[0].id;
@@ -195,38 +261,22 @@ export class MovieService {
     const movieFolder = join('public', 'movie');
     const tempFolder = join('public', 'temp');
 
-    const movie = await qr.manager
-      .createQueryBuilder()
-      .insert()
-      .into(Movie)
-      .values({
-        title: createMovieDto.title,
-        // => 따로 생성한 movieDetail의 id를 넣어준다.
-        detail: {
-          id: movieDetailId,
-        },
-        director,
-        creator: {
-          id: userId,
-        },
-        movieFilePath: join(movieFolder, createMovieDto.movieFileName),
-      })
-      .execute();
+    const movie = await this.createMovie(
+      qr,
+      createMovieDto,
+      movieDetailId,
+      director,
+      userId,
+      movieFolder,
+    );
 
     // => 생성한 movie의 id를 가져온다.
     const movieId = movie.identifiers[0].id;
 
     // => 실질적 관계 맵핑
-    await qr.manager
-      .createQueryBuilder()
-      .relation(Movie, 'genres')
-      .of(movieId)
-      .add(genres.map((genre) => genre.id));
+    await this.createMovieGenreRelation(qr, movieId, genres);
 
-    await rename(
-      join(process.cwd(), tempFolder, createMovieDto.movieFileName), // 여기있는걸
-      join(process.cwd(), movieFolder, createMovieDto.movieFileName), // 여기로 옮긴다.
-    );
+    await this.renameMovieFile(tempFolder, movieFolder, createMovieDto);
 
     // 컨트롤러 전체에 인터셉터로 트랜잭션을 적용했기 떄문에 쿼리러너로 모든 로직을 처리해야한다.
     return await qr.manager.findOne(Movie, {
@@ -235,6 +285,41 @@ export class MovieService {
       },
       relations: ['detail', 'director', 'genres'],
     });
+  }
+
+  /* istanbul ignore next */
+  updateMovie(qr: QueryRunner, movieUpdateFields: UpdateMovieDto, id: number) {
+    return qr.manager
+      .createQueryBuilder()
+      .update(Movie)
+      .set(movieUpdateFields)
+      .where('id = :id', { id })
+      .execute();
+  }
+
+  /* istanbul ignore next */
+  updateMovieDetail(qr: QueryRunner, detail: string, movie: Movie) {
+    return qr.manager
+      .createQueryBuilder()
+      .update(MovieDetail)
+      .set({ detail })
+      .where('id = :id', { id: movie.detail.id })
+      .execute();
+  }
+
+  /* istanbul ignore next */
+  updateMovieGenreRelation(qr: QueryRunner, id: number, newGenres: Genre[], movie: Movie) {
+    return qr.manager
+      .createQueryBuilder()
+      .relation(Movie, 'genres')
+      .of(id)
+      // addAndRemove(추가할 id 배열, 제거할 id 배열)
+      .addAndRemove(
+        // 업데이트 요청에 들어온 장르 id - 전부 등록
+        newGenres.map((genre) => genre.id),
+        // 기존 영화의 장르 id - 전부 삭제
+        movie.genres.map((genre) => genre.id),
+      );
   }
 
   async update(id: number, updateMovieDto: UpdateMovieDto) {
@@ -292,34 +377,14 @@ export class MovieService {
       };
 
       //* Query Builder로 업데이트
-      await qr.manager
-        .createQueryBuilder()
-        .update(Movie)
-        .set(movieUpdateFields)
-        .where('id = :id', { id })
-        .execute();
+      await this.updateMovie(qr, movieUpdateFields, id);
 
       if (detail) {
-        await qr.manager
-          .createQueryBuilder()
-          .update(MovieDetail)
-          .set({ detail })
-          .where('id = :id', { id: movie.detail.id })
-          .execute();
+        await this.updateMovieDetail(qr, detail, movie);
       }
 
       if (newGenres) {
-        await qr.manager
-          .createQueryBuilder()
-          .relation(Movie, 'genres')
-          .of(id)
-          // addAndRemove(추가할 id 배열, 제거할 id 배열)
-          .addAndRemove(
-            // 업데이트 요청에 들어온 장르 id - 전부 등록
-            newGenres.map((genre) => genre.id),
-            // 기존 영화의 장르 id - 전부 삭제
-            movie.genres.map((genre) => genre.id),
-          );
+        await this.updateMovieGenreRelation(qr, id, newGenres, movie);
       }
 
       await qr.commitTransaction();
@@ -361,6 +426,17 @@ export class MovieService {
     return id;
   }
 
+  /* istanbul ignore next */
+  async getLikedRecord(movieId: number, userId: number) {
+    return await this.movieUserLikeRepository
+      .createQueryBuilder('mul')
+      .leftJoinAndSelect('mul.movie', 'movie')
+      .leftJoinAndSelect('mul.user', 'user')
+      .where('movie.id = :movieId', { movieId })
+      .andWhere('user.id = :userId', { userId })
+      .getOne();
+  }
+
   async toggleMovieLike(movieId: number, userId: number, isLike: boolean) {
     const movie = await this.movieRepository.findOne({
       where: {
@@ -369,7 +445,7 @@ export class MovieService {
     });
 
     if (!movie) {
-      throw new NotFoundException('그 영화 없어요');
+      throw new BadRequestException('그 영화 없어요');
     }
 
     const user = await this.userRepository.findOne({
@@ -382,13 +458,7 @@ export class MovieService {
       throw new UnauthorizedException('사용자 정보가 없어요');
     }
 
-    const likeRecord = await this.movieUserLikeRepository
-      .createQueryBuilder('mul')
-      .leftJoinAndSelect('mul.movie', 'movie')
-      .leftJoinAndSelect('mul.user', 'user')
-      .where('movie.id = :movieId', { movieId })
-      .andWhere('user.id = :userId', { userId })
-      .getOne();
+    const likeRecord = await this.getLikedRecord(movieId, userId);
 
     if (likeRecord) {
       if (isLike === likeRecord.isLike) {
@@ -404,15 +474,9 @@ export class MovieService {
       });
     }
 
-    const result = await this.movieUserLikeRepository
-      .createQueryBuilder('mul')
-      .leftJoinAndSelect('mul.movie', 'movie')
-      .leftJoinAndSelect('mul.user', 'user')
-      .where('movie.id = :movieId', { movieId })
-      .andWhere('user.id = :userId', { userId })
-      .getOne();
+    const result = await this.getLikedRecord(movieId, userId);
 
-    console.log('result', result);
+    // console.log('result', result);
 
     return {
       isLike: result && result.isLike,

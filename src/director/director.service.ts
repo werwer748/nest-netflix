@@ -27,7 +27,7 @@ export class DirectorService {
   }
 
   async update(id: number, updateDirectorDto: UpdateDirectorDto) {
-    const director = this.directorRepository.findOne({
+    const director = await this.directorRepository.findOne({
       where: { id }
     });
 
