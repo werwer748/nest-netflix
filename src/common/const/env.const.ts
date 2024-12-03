@@ -1,4 +1,4 @@
-const env = 'dev' as const;
+const env = 'ENV' as const;
 
 export const envVariableKeys = {
   env

@@ -34,15 +34,16 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { WinstonModule } from 'nest-winston';
 // winston을 import
 import * as winston from 'winston';
+import { envVariableKeys } from './common/const/env.const';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       //? 환경변수 파일 이름 오른쪽 파일 기준으로 중복값은 덮어 씌운다.
-      envFilePath: ['.env.dev', '.env.prod', '.env'],
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
       isGlobal: true, // 어떤 모듈에서도 환경변수를 사용할 수 있게 한다.
       validationSchema: Joi.object({
-        ENV: Joi.string().valid('dev', 'prod').required(),
+        ENV: Joi.string().valid('test', 'dev', 'prod').required(),
         DB_TYPE: Joi.string().valid('postgres').required(),
         DB_HOST: Joi.string().required(),
         DB_PORT: Joi.number().required(),
@@ -73,6 +74,8 @@ import * as winston from 'winston';
         ],
         synchronize: true,
         // logging: true,
+        // env가 test라면 DB를 깨끗이 지우고 시작
+        dropSchema: configService.get<string>(envVariableKeys.env) === 'test',
       }),
       inject: [ConfigService],
     }),
