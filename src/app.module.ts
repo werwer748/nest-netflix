@@ -76,6 +76,10 @@ import { envVariableKeys } from './common/const/env.const';
         // logging: true,
         // env가 test라면 DB를 깨끗이 지우고 시작
         dropSchema: configService.get<string>(envVariableKeys.env) === 'test',
+        // DB 보안 설정 - 일단은 false로 설정
+        ssl: {
+          rejectUnauthorized: false,
+        }
       }),
       inject: [ConfigService],
     }),
