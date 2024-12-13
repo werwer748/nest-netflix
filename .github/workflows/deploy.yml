@@ -47,6 +47,7 @@ jobs:
           DB_HOST: ${{secrets.DB_HOST}}
           DB_PORT: ${{secrets.DB_PORT}}
           DB_USERNAME: ${{secrets.DB_USERNAME}}
+          DB_PASSWORD: ${{secrets.DB_PASSWORD}}
           DB_DATABASE: ${{secrets.DB_DATABASE}}
           HASH_ROUNDS: ${{secrets.HASH_ROUNDS}}
           ACCESS_TOKEN_SECRET: ${{secrets.ACCESS_TOKEN_SECRET}}
