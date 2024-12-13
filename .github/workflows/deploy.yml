@@ -104,6 +104,10 @@ jobs:
       - name: Build Project
         run: npm run build
 
+      # 테스트 코드 돌리기!
+      - name: Run Test
+        run: npm run test
+
       # 마이그레이션 진행
       - name: Run Migration
         run: npx typeorm migration:run -d ./dist/database/data-source.js

@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
+import { envVariableKeys } from '../common/const/env.const';
 
 // .env 가져오기
 dotenv.config({ path: '.env' });
@@ -19,4 +20,9 @@ export default new DataSource({
   migrations: [
     'dist/database/migrations/*.js',
   ],
+  ...(process.env.ENV === 'prod' && {
+    ssl: {
+      rejectUnauthorized: false,
+    }
+  }),
 });
