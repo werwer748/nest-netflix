@@ -1,11 +1,74 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SelectQueryBuilder } from 'typeorm';
 import { PagePaginationDto } from './dto/page-pagination.dto';
 import { CursorPaginationDto } from './dto/cursor-pagination.dto';
+import * as AWS from 'aws-sdk';
+import { v4 as uuid } from 'uuid';
+import { ConfigService } from '@nestjs/config';
+import { awsVariableKeys } from './const/aws.const';
 
 @Injectable()
 export class CommonService {
-  constructor() {}
+  private s3: AWS.S3;
+
+  constructor(
+    private readonly configService: ConfigService,
+  ) {
+    AWS.config.update({
+      credentials: {
+        accessKeyId: this.configService.get<string>(awsVariableKeys.awsAccessKeyId),
+        secretAccessKey: this.configService.get<string>(awsVariableKeys.awsSecretAccessKey),
+      },
+      region: this.configService.get<string>(awsVariableKeys.awsRegion),
+    });
+
+    this.s3 = new AWS.S3();
+  }
+
+  async saveMovieToPermanentStorage(fileName: string) {
+    try {
+      const bucketName = this.configService.get<string>(awsVariableKeys.bucketName);
+
+      // 파일 복사
+      await this.s3.copyObject({
+        Bucket: bucketName,
+        CopySource: `${bucketName}/public/temp/${fileName}`,
+        Key: `public/movie/${fileName}`,
+        ACL: 'public-read',
+      }).promise();
+
+      // 복사한 원본(temp) 파일 삭제
+      await this.s3.deleteObject({
+        Bucket: bucketName,
+        Key: `public/temp/${fileName}`,
+      }).promise();
+    } catch(e) {
+      console.log(e);
+      throw new InternalServerErrorException('S3 에러!');
+    }
+  }
+
+  //? S3에 파일 업로드 시, presigned url을 생성해주는 메서드 - 5분간 유효
+  async createPresignedUrl(expiresIn = 300) {
+    const params = {
+      //? 업로드할 파일의 버킷 이름
+      Bucket: this.configService.get<string>(awsVariableKeys.bucketName),
+      //? 버킷 내부를 키로 구분하여 저장할 수 있음 {버킷명}/{키} 형식 - 폴더처럼 보이는 헝태
+      Key: `public/temp/${uuid()}.mp4`,
+      //? url이 유효한 시간
+      Expires: expiresIn,
+      //? 아무나 볼수 있도록 설정
+      ACL: 'public-read',
+    };
+
+    try {
+      const url = await this.s3.getSignedUrlPromise('putObject', params);
+      return url;
+    } catch(e) {
+      console.log(e);
+      throw new InternalServerErrorException('S3 Presigned URL 생성 실패')
+    }
+  }
 
   applyPagePaginationParamsToQb<T>(
     qb: SelectQueryBuilder<T>,
