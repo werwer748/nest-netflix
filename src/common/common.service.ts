@@ -2,27 +2,30 @@ import { BadRequestException, Injectable, InternalServerErrorException } from '@
 import { SelectQueryBuilder } from 'typeorm';
 import { PagePaginationDto } from './dto/page-pagination.dto';
 import { CursorPaginationDto } from './dto/cursor-pagination.dto';
-import * as AWS from 'aws-sdk';
+//* aws-sdk v3 추가
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { ObjectCannedACL, PutObjectCommand, S3 } from '@aws-sdk/client-s3';
+
 import { v4 as uuid } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import { awsVariableKeys } from './const/aws.const';
 
 @Injectable()
 export class CommonService {
-  private s3: AWS.S3;
+  private s3: S3;
 
   constructor(
     private readonly configService: ConfigService,
   ) {
-    AWS.config.update({
+
+    this.s3 = new S3({
       credentials: {
         accessKeyId: this.configService.get<string>(awsVariableKeys.awsAccessKeyId),
         secretAccessKey: this.configService.get<string>(awsVariableKeys.awsSecretAccessKey),
       },
+
       region: this.configService.get<string>(awsVariableKeys.awsRegion),
     });
-
-    this.s3 = new AWS.S3();
   }
 
   async saveMovieToPermanentStorage(fileName: string) {
@@ -35,13 +38,13 @@ export class CommonService {
         CopySource: `${bucketName}/public/temp/${fileName}`,
         Key: `public/movie/${fileName}`,
         ACL: 'public-read',
-      }).promise();
+      });
 
       // 복사한 원본(temp) 파일 삭제
       await this.s3.deleteObject({
         Bucket: bucketName,
         Key: `public/temp/${fileName}`,
-      }).promise();
+      });
     } catch(e) {
       console.log(e);
       throw new InternalServerErrorException('S3 에러!');
@@ -55,14 +58,15 @@ export class CommonService {
       Bucket: this.configService.get<string>(awsVariableKeys.bucketName),
       //? 버킷 내부를 키로 구분하여 저장할 수 있음 {버킷명}/{키} 형식 - 폴더처럼 보이는 헝태
       Key: `public/temp/${uuid()}.mp4`,
-      //? url이 유효한 시간
-      Expires: expiresIn,
       //? 아무나 볼수 있도록 설정
-      ACL: 'public-read',
+      // ACL: 'public-read', // 이렇게 스트링으로 쓰지말고 꺼내써야한다.
+      ACL: ObjectCannedACL.public_read,
     };
 
     try {
-      const url = await this.s3.getSignedUrlPromise('putObject', params);
+      const url = await getSignedUrl(this.s3, new PutObjectCommand(params), {
+        expiresIn,
+      });
       return url;
     } catch(e) {
       console.log(e);

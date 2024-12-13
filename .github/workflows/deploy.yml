@@ -1,0 +1,66 @@
+name: Deploy to AWS Elastic Beanstalk
+
+# 어떤 이벤트가 발생했을 때 workflow를 실행할 것인지를 설정
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # job의 이름을 설정
+  build-and-deploy:
+    # job을 실행할 runner를 설정 - ubuntu 최신버전에서 실행
+    runs-on: ubuntu-latest
+
+    steps:
+      # 브런치의 최신 코드를 가져온다.
+      - name: Checkout code
+        users: actions/checkout@v3
+
+      # ubuntu에 필요한 패키지를 설치한다.
+      - name: Setup NodeJS
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # npm 패키지를 설치한다.
+      - name: Install Dependencies
+        run: npm i
+
+      # 프로젝트를 빌드한다.
+      - name: Build Project
+        run: npm run build
+
+      # 프로젝트 압축
+      - name: Zip Artifact For Deployment
+        run: zip -r deploy.zip .
+
+      #S3로 업로드
+      - name: Upload to S3
+        # github action을 통해 등록한 secret 값들
+        env:
+          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          AWS_REGION: ${{secrets.AWS_REGION}}
+        # | 를 사용하여 여러줄의 명령어를 실행할 수 있다.
+        run: |
+          aws configure set region $AWS_REGION
+          aws s3 cp deploy.zip s3://hugo-nestjs-netflix-bucket/deploy.zip
+
+      - name: Deploy To AWS Elastic Beanstalk
+        env:
+          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          AWS_REGION: ${{secrets.AWS_REGION}}
+        # GITHUB_SHA를 통해 깃헙에서 제공해주는 고유한 값으로 버전을 생성한다. - 절대 겹치지 않는다.
+        # application-name과 environment-name은 AWS Elastic Beanstalk에서 설정한 이름과 동일해야 한다.
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name "NestJS-Netflix-EB" \
+            --version-label $GITHUB_SHA \
+            --source-bundle S3Buket="hugo-nestjs-netflix-bucket", S3Key="deploy.zip"
+          
+          aws elasticbeanstalk update-environment \
+            --application-name "NestJS-Netflix-EB" \
+            --environment-name "NestJS-Netflix-EB-env" \
+            -version-label $GITHUB_SHA

@@ -76,7 +76,8 @@ import { envVariableKeys } from './common/const/env.const';
           User,
           MovieUserLike,
         ],
-        synchronize: (configService.get<string>(envVariableKeys.env) !== 'prod'),
+        // synchronize: (configService.get<string>(envVariableKeys.env) !== 'prod'),
+        synchronize: true,
         // logging: true,
         // env가 test라면 DB를 깨끗이 지우고 시작
         dropSchema: configService.get<string>(envVariableKeys.env) === 'test',
