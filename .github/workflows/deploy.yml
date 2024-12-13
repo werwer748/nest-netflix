@@ -21,7 +21,7 @@ jobs:
       - name: Setup NodeJS
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       # npm 패키지를 설치한다.
       - name: Install Dependencies
@@ -58,9 +58,9 @@ jobs:
           aws elasticbeanstalk create-application-version \
             --application-name "NestJS-Netflix-EB" \
             --version-label $GITHUB_SHA \
-            --source-bundle S3Buket="hugo-nestjs-netflix-bucket", S3Key="deploy.zip"
+            --source-bundle S3Bucket="hugo-nestjs-netflix-bucket", S3Key="deploy.zip"
           
           aws elasticbeanstalk update-environment \
             --application-name "NestJS-Netflix-EB" \
             --environment-name "NestJS-Netflix-EB-env" \
-            -version-label $GITHUB_SHA
+            --version-label $GITHUB_SHA
