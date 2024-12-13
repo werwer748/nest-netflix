@@ -15,7 +15,7 @@ jobs:
     steps:
       # 브런치의 최신 코드를 가져온다.
       - name: Checkout code
-        users: actions/checkout@v3
+        uses: actions/checkout@v3
 
       # ubuntu에 필요한 패키지를 설치한다.
       - name: Setup NodeJS
