@@ -14,7 +14,7 @@ import { MovieDetail } from './movie/entity/movie-detail.entity';
 import { DirectorModule } from './director/director.module';
 import { Director } from './director/entity/director.entity';
 import { GenreModule } from './genre/genre.module';
-import { Genre } from './genre/entities/genre.entity';
+import { Genre } from './genre/entity/genre.entity';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { User } from './user/entity/user.entity';
@@ -72,14 +72,16 @@ import { envVariableKeys } from './common/const/env.const';
           User,
           MovieUserLike,
         ],
-        synchronize: true,
+        synchronize: (configService.get<string>(envVariableKeys.env) !== 'prod'),
         // logging: true,
         // env가 test라면 DB를 깨끗이 지우고 시작
         dropSchema: configService.get<string>(envVariableKeys.env) === 'test',
         // DB 보안 설정 - 일단은 false로 설정
-        ssl: {
-          rejectUnauthorized: false,
-        }
+        ...(configService.get<string>(envVariableKeys.env) === 'prod' && {
+          ssl: {
+            rejectUnauthorized: false,
+          }
+        }),
       }),
       inject: [ConfigService],
     }),

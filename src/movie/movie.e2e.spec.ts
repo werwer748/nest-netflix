@@ -6,7 +6,7 @@ import { Movie } from './entity/movie.entity';
 import { MovieDetail } from './entity/movie-detail.entity';
 import { Role, User } from '../user/entity/user.entity';
 import { Director } from '../director/entity/director.entity';
-import { Genre } from '../genre/entities/genre.entity';
+import { Genre } from '../genre/entity/genre.entity';
 import { DataSource } from 'typeorm';
 import { MovieUserLike } from './entity/movie-user-like.entity';
 import { AuthService } from '../auth/auth.service';
