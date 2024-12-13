@@ -58,7 +58,7 @@ jobs:
           aws elasticbeanstalk create-application-version \
             --application-name "NestJS-Netflix-EB" \
             --version-label $GITHUB_SHA \
-            --source-bundle S3Bucket="hugo-nestjs-netflix-bucket", S3Key="deploy.zip"
+            --source-bundle S3Bucket="hugo-nestjs-netflix-bucket",S3Key="deploy.zip"
           
           aws elasticbeanstalk update-environment \
             --application-name "NestJS-Netflix-EB" \
