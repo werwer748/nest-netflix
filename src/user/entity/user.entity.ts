@@ -1,9 +1,10 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseTimeEntity } from '../../common/entity/base-time.entity';
 import { Exclude } from 'class-transformer';
 import { Movie } from '../../movie/entity/movie.entity';
 import { MovieUserLike } from '../../movie/entity/movie-user-like.entity';
-import { ApiHideProperty } from '@nestjs/swagger';
+import { Chat } from '../../chat/entity/chat.entity';
+import { ChatRoom } from '../../chat/entity/chat-room.entity';
 
 export enum Role {
   admin = 'admin',
@@ -39,4 +40,10 @@ export class User extends BaseTimeEntity {
 
   @OneToMany(() => MovieUserLike, (movieUserLike) => movieUserLike.user)
   likedMovies: MovieUserLike[];
+
+  @OneToMany(() => Chat, (chat) => chat.author)
+  chats: Chat[];
+
+  @ManyToMany(() => ChatRoom, (chatRoom) => chatRoom.users)
+  chatRooms: ChatRoom[];
 }
