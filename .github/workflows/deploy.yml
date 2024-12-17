@@ -1,151 +1,151 @@
-name: Deploy to AWS Elastic Beanstalk
-
-# 어떤 이벤트가 발생했을 때 workflow를 실행할 것인지를 설정
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  # job의 이름을 설정
-  build-and-deploy:
-    # job을 실행할 runner를 설정 - ubuntu 최신버전에서 실행
-    runs-on: ubuntu-latest
-
-    # 함께 실행할 모든 서비스 - 도커 작성하듯이 작성하면됨
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        # postgres가 완전히 실행되고 아래 파이프라인 코드가 실행되도록 막는다.
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-      # 브런치의 최신 코드를 가져온다.
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # ubuntu에 필요한 패키지를 설치한다.
-      - name: Setup NodeJS
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-        # .env 파일을 생성한다.
-      - name: Create Env File
-        env:
-          ENV: ${{secrets.ENV}}
-          DB_TYPE: ${{secrets.DB_TYPE}}
-          DB_HOST: ${{secrets.DB_HOST}}
-          DB_PORT: ${{secrets.DB_PORT}}
-          DB_USERNAME: ${{secrets.DB_USERNAME}}
-          DB_PASSWORD: ${{secrets.DB_PASSWORD}}
-          DB_DATABASE: ${{secrets.DB_DATABASE}}
-          HASH_ROUNDS: ${{secrets.HASH_ROUNDS}}
-          ACCESS_TOKEN_SECRET: ${{secrets.ACCESS_TOKEN_SECRET}}
-          REFRESH_TOKEN_SECRET: ${{secrets.REFRESH_TOKEN_SECRET}}
-          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-          AWS_REGION: ${{secrets.AWS_REGION}}
-          BUCKET_NAME: ${{secrets.BUCKET_NAME}}
-        run: |
-          touch .env.test
-          echo ENV="test" >> .env.test
-          echo DB_TYPE="$DB_TYPE" >> .env.test
-          echo DB_HOST="localhost" >> .env.test
-          echo DB_PORT="$DB_PORT" >> .env.test
-          echo DB_USERNAME="$DB_USERNAME" >> .env.test
-          echo DB_PASSWORD="$DB_PASSWORD" >> .env.test
-          echo DB_DATABASE="$DB_DATABASE" >> .env.test
-          echo HASH_ROUNDS="$HASH_ROUNDS" >> .env.test
-          echo ACCESS_TOKEN_SECRET="$ACCESS_TOKEN_SECRET" >> .env.test
-          echo REFRESH_TOKEN_SECRET="$REFRESH_TOKEN_SECRET" >> .env.test
-          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> .env.test
-          echo AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" >> .env.test
-          echo AWS_REGION="$AWS_REGION" >> .env.test
-          echo BUCKET_NAME="$BUCKET_NAME" >> .env.test
-          echo ".env.test created"
-          cat .env.test
-          
-          touch .env
-          echo ENV="$ENV" >> .env
-          echo DB_TYPE="$DB_TYPE" >> .env
-          echo DB_HOST="$DB_HOST" >> .env
-          echo DB_PORT="$DB_PORT" >> .env
-          echo DB_USERNAME="$DB_USERNAME" >> .env
-          echo DB_PASSWORD="$DB_PASSWORD" >> .env
-          echo DB_DATABASE="$DB_DATABASE" >> .env
-          echo HASH_ROUNDS="$HASH_ROUNDS" >> .env
-          echo ACCESS_TOKEN_SECRET="$ACCESS_TOKEN_SECRET" >> .env
-          echo REFRESH_TOKEN_SECRET="$REFRESH_TOKEN_SECRET" >> .env
-          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> .env
-          echo AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" >> .env
-          echo AWS_REGION="$AWS_REGION" >> .env
-          echo BUCKET_NAME="$BUCKET_NAME" >> .env
-          echo ".env created"
-          cat .env
-
-      # 필요한 폴더를 생성한다.
-      - name: Create Folders
-        run: |
-          mkdir -p ./public/movie
-          mkdir -p ./public/temp
-
-      # npm 패키지를 설치한다.
-      - name: Install Dependencies
-        run: npm i
-
-      # 프로젝트를 빌드한다.
-      - name: Build Project
-        run: npm run build
-
-      # 테스트 코드 돌리기!
-      - name: Run Test
-        run: npm run test
-
-      # 마이그레이션 진행
-      - name: Run Migration
-        run: npx typeorm migration:run -d ./dist/database/data-source.js
-
-      # 프로젝트 압축
-      - name: Zip Artifact For Deployment
-        run: zip -r deploy.zip .
-
-      #S3로 업로드
-      - name: Upload to S3
-        # github action을 통해 등록한 secret 값들
-        env:
-          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-          AWS_REGION: ${{secrets.AWS_REGION}}
-        # | 를 사용하여 여러줄의 명령어를 실행할 수 있다.
-        run: |
-          aws configure set region $AWS_REGION
-          aws s3 cp deploy.zip s3://hugo-nestjs-netflix-bucket/deploy.zip
-
-      - name: Deploy To AWS Elastic Beanstalk
-        env:
-          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-          AWS_REGION: ${{secrets.AWS_REGION}}
-        # GITHUB_SHA를 통해 깃헙에서 제공해주는 고유한 값으로 버전을 생성한다. - 절대 겹치지 않는다.
-        # application-name과 environment-name은 AWS Elastic Beanstalk에서 설정한 이름과 동일해야 한다.
-        # S3Bucket="hugo-nestjs-netflix-bucket",S3Key="deploy.zip" 띄어쓰기 있으면 터짐
-        run: |
-          aws elasticbeanstalk create-application-version \
-            --application-name "NestJS-Netflix-EB" \
-            --version-label $GITHUB_SHA \
-            --source-bundle S3Bucket="hugo-nestjs-netflix-bucket",S3Key="deploy.zip"
-          
-          aws elasticbeanstalk update-environment \
-            --application-name "NestJS-Netflix-EB" \
-            --environment-name "NestJS-Netflix-EB-env" \
-            --version-label $GITHUB_SHA
+#name: Deploy to AWS Elastic Beanstalk
+#
+## 어떤 이벤트가 발생했을 때 workflow를 실행할 것인지를 설정
+#on:
+#  push:
+#    branches:
+#      - main
+#
+#jobs:
+#  # job의 이름을 설정
+#  build-and-deploy:
+#    # job을 실행할 runner를 설정 - ubuntu 최신버전에서 실행
+#    runs-on: ubuntu-latest
+#
+#    # 함께 실행할 모든 서비스 - 도커 작성하듯이 작성하면됨
+#    services:
+#      postgres:
+#        image: postgres:16
+#        env:
+#          POSTGRES_USER: postgres
+#          POSTGRES_PASSWORD: postgres
+#        # postgres가 완전히 실행되고 아래 파이프라인 코드가 실행되도록 막는다.
+#        options: >-
+#          --health-cmd pg_isready
+#          --health-interval 10s
+#          --health-timeout 5s
+#          --health-retries 5
+#        ports:
+#          - 5432:5432
+#
+#    steps:
+#      # 브런치의 최신 코드를 가져온다.
+#      - name: Checkout code
+#        uses: actions/checkout@v3
+#
+#      # ubuntu에 필요한 패키지를 설치한다.
+#      - name: Setup NodeJS
+#        uses: actions/setup-node@v3
+#        with:
+#          node-version: '20'
+#
+#        # .env 파일을 생성한다.
+#      - name: Create Env File
+#        env:
+#          ENV: ${{secrets.ENV}}
+#          DB_TYPE: ${{secrets.DB_TYPE}}
+#          DB_HOST: ${{secrets.DB_HOST}}
+#          DB_PORT: ${{secrets.DB_PORT}}
+#          DB_USERNAME: ${{secrets.DB_USERNAME}}
+#          DB_PASSWORD: ${{secrets.DB_PASSWORD}}
+#          DB_DATABASE: ${{secrets.DB_DATABASE}}
+#          HASH_ROUNDS: ${{secrets.HASH_ROUNDS}}
+#          ACCESS_TOKEN_SECRET: ${{secrets.ACCESS_TOKEN_SECRET}}
+#          REFRESH_TOKEN_SECRET: ${{secrets.REFRESH_TOKEN_SECRET}}
+#          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+#          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+#          AWS_REGION: ${{secrets.AWS_REGION}}
+#          BUCKET_NAME: ${{secrets.BUCKET_NAME}}
+#        run: |
+#          touch .env.test
+#          echo ENV="test" >> .env.test
+#          echo DB_TYPE="$DB_TYPE" >> .env.test
+#          echo DB_HOST="localhost" >> .env.test
+#          echo DB_PORT="$DB_PORT" >> .env.test
+#          echo DB_USERNAME="$DB_USERNAME" >> .env.test
+#          echo DB_PASSWORD="$DB_PASSWORD" >> .env.test
+#          echo DB_DATABASE="$DB_DATABASE" >> .env.test
+#          echo HASH_ROUNDS="$HASH_ROUNDS" >> .env.test
+#          echo ACCESS_TOKEN_SECRET="$ACCESS_TOKEN_SECRET" >> .env.test
+#          echo REFRESH_TOKEN_SECRET="$REFRESH_TOKEN_SECRET" >> .env.test
+#          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> .env.test
+#          echo AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" >> .env.test
+#          echo AWS_REGION="$AWS_REGION" >> .env.test
+#          echo BUCKET_NAME="$BUCKET_NAME" >> .env.test
+#          echo ".env.test created"
+#          cat .env.test
+#
+#          touch .env
+#          echo ENV="$ENV" >> .env
+#          echo DB_TYPE="$DB_TYPE" >> .env
+#          echo DB_HOST="$DB_HOST" >> .env
+#          echo DB_PORT="$DB_PORT" >> .env
+#          echo DB_USERNAME="$DB_USERNAME" >> .env
+#          echo DB_PASSWORD="$DB_PASSWORD" >> .env
+#          echo DB_DATABASE="$DB_DATABASE" >> .env
+#          echo HASH_ROUNDS="$HASH_ROUNDS" >> .env
+#          echo ACCESS_TOKEN_SECRET="$ACCESS_TOKEN_SECRET" >> .env
+#          echo REFRESH_TOKEN_SECRET="$REFRESH_TOKEN_SECRET" >> .env
+#          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> .env
+#          echo AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" >> .env
+#          echo AWS_REGION="$AWS_REGION" >> .env
+#          echo BUCKET_NAME="$BUCKET_NAME" >> .env
+#          echo ".env created"
+#          cat .env
+#
+#      # 필요한 폴더를 생성한다.
+#      - name: Create Folders
+#        run: |
+#          mkdir -p ./public/movie
+#          mkdir -p ./public/temp
+#
+#      # npm 패키지를 설치한다.
+#      - name: Install Dependencies
+#        run: npm i
+#
+#      # 프로젝트를 빌드한다.
+#      - name: Build Project
+#        run: npm run build
+#
+#      # 테스트 코드 돌리기!
+#      - name: Run Test
+#        run: npm run test
+#
+#      # 마이그레이션 진행
+#      - name: Run Migration
+#        run: npx typeorm migration:run -d ./dist/database/data-source.js
+#
+#      # 프로젝트 압축
+#      - name: Zip Artifact For Deployment
+#        run: zip -r deploy.zip .
+#
+#      #S3로 업로드
+#      - name: Upload to S3
+#        # github action을 통해 등록한 secret 값들
+#        env:
+#          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+#          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+#          AWS_REGION: ${{secrets.AWS_REGION}}
+#        # | 를 사용하여 여러줄의 명령어를 실행할 수 있다.
+#        run: |
+#          aws configure set region $AWS_REGION
+#          aws s3 cp deploy.zip s3://hugo-nestjs-netflix-bucket/deploy.zip
+#
+#      - name: Deploy To AWS Elastic Beanstalk
+#        env:
+#          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+#          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+#          AWS_REGION: ${{secrets.AWS_REGION}}
+#        # GITHUB_SHA를 통해 깃헙에서 제공해주는 고유한 값으로 버전을 생성한다. - 절대 겹치지 않는다.
+#        # application-name과 environment-name은 AWS Elastic Beanstalk에서 설정한 이름과 동일해야 한다.
+#        # S3Bucket="hugo-nestjs-netflix-bucket",S3Key="deploy.zip" 띄어쓰기 있으면 터짐
+#        run: |
+#          aws elasticbeanstalk create-application-version \
+#            --application-name "NestJS-Netflix-EB" \
+#            --version-label $GITHUB_SHA \
+#            --source-bundle S3Bucket="hugo-nestjs-netflix-bucket",S3Key="deploy.zip"
+#
+#          aws elasticbeanstalk update-environment \
+#            --application-name "NestJS-Netflix-EB" \
+#            --environment-name "NestJS-Netflix-EB-env" \
+#            --version-label $GITHUB_SHA
