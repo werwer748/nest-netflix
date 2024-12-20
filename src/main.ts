@@ -3,6 +3,15 @@ import { AppModule } from './app.module';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+//? ffmpeg 실행
+import * as ffmpeg from '@ffmpeg-installer/ffmpeg';
+import * as ffprobe from 'ffprobe-static';
+//? ffmpeg 실제 사용
+import * as ffmpegFluent from 'fluent-ffmpeg';
+
+//? fluent에 ffmpeg 경로 설정
+ffmpegFluent.setFfmpegPath(ffmpeg.path);
+ffmpegFluent.setFfprobePath(ffprobe.path);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {

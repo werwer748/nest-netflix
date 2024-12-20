@@ -9,12 +9,13 @@ import { TasksService } from './tasks.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Movie } from '../movie/entity/movie.entity';
 import { DefaultLogger } from './logger/default.logger';
+import { BullModule } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
+import { redisVariableKeys } from './const/redis.const';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Movie
-    ]),
+    TypeOrmModule.forFeature([Movie]),
     MulterModule.register({
       storage: diskStorage({
         // process.cwd(): 현재 프로젝트의 root directory
@@ -35,7 +36,23 @@ import { DefaultLogger } from './logger/default.logger';
           //* callback(에러, 파일명)
           callback(null, `${v4()}_${Date.now()}.${extension}`);
         },
-      })
+      }),
+    }),
+    //* Redis에 작업을 올릴 수 있도록 BullMq 설정
+    BullModule.forRootAsync({
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>(redisVariableKeys.redisHost),
+          port: configService.get<number>(redisVariableKeys.redisPort),
+          username: configService.get<string>(redisVariableKeys.redisUsername),
+          password: configService.get<string>(redisVariableKeys.redisPassword),
+        },
+      }),
+      inject: [ConfigService],
+    }),
+    BullModule.registerQueue({
+      //* 큐의 작업 이름을 지정
+      name: 'thumbnail-generation',
     }),
   ],
   controllers: [CommonController],

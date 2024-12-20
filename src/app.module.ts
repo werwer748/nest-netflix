@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { MovieModule } from './movie/movie.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConditionalModule, ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
 import { dbVariableKeys } from './common/const/db.const';
 import { Movie } from './movie/entity/movie.entity';
@@ -38,6 +38,7 @@ import { envVariableKeys } from './common/const/env.const';
 import { ChatModule } from './chat/chat.module';
 import { Chat } from './chat/entity/chat.entity';
 import { ChatRoom } from './chat/entity/chat-room.entity';
+import { WorkerModule } from './worker/worker.module';
 
 @Module({
   imports: [
@@ -60,6 +61,10 @@ import { ChatRoom } from './chat/entity/chat-room.entity';
         AWS_ACCESS_KEY_ID: Joi.string().required(),
         AWS_REGION: Joi.string().required(),
         BUCKET_NAME: Joi.string().required(),
+        REDIS_HOST: Joi.string().required(),
+        REDIS_PORT: Joi.string().required(),
+        REDIS_USERNAME: Joi.string().required(),
+        REDIS_PASSWORD: Joi.string().required(),
       }),
     }),
     TypeOrmModule.forRootAsync({
@@ -81,7 +86,7 @@ import { ChatRoom } from './chat/entity/chat-room.entity';
           Chat,
           ChatRoom,
         ],
-        synchronize: (configService.get<string>(envVariableKeys.env) !== 'prod'),
+        synchronize: configService.get<string>(envVariableKeys.env) !== 'prod',
         // synchronize: true,
         // logging: true,
         // env가 test라면 DB를 깨끗이 지우고 시작
@@ -90,7 +95,7 @@ import { ChatRoom } from './chat/entity/chat-room.entity';
         ...(configService.get<string>(envVariableKeys.env) === 'prod' && {
           ssl: {
             rejectUnauthorized: false,
-          }
+          },
         }),
       }),
       inject: [ConfigService],
@@ -129,9 +134,11 @@ import { ChatRoom } from './chat/entity/chat-room.entity';
             // formant.printf에 timestamp를 전달
             winston.format.timestamp(),
             // 로그 출력 형식 -> info: [Object object]
-            winston.format.printf(info => `${info.timestamp} [${info.context}] ${info.level}: ${info.message}`),
-
-          )
+            winston.format.printf(
+              (info) =>
+                `${info.timestamp} [${info.context}] ${info.level}: ${info.message}`,
+            ),
+          ),
         }),
         // 파일을 남기는 방법을 설정
         new winston.transports.File({
@@ -144,9 +151,11 @@ import { ChatRoom } from './chat/entity/chat-room.entity';
             // formant.printf에 timestamp를 전달
             winston.format.timestamp(),
             // 로그 출력 형식 -> info: [Object object]
-            winston.format.printf(info => `${info.timestamp} [${info.context}] ${info.level}: ${info.message}`),
-
-          )
+            winston.format.printf(
+              (info) =>
+                `${info.timestamp} [${info.context}] ${info.level}: ${info.message}`,
+            ),
+          ),
         }),
       ],
     }),
@@ -156,6 +165,17 @@ import { ChatRoom } from './chat/entity/chat-room.entity';
     AuthModule,
     UserModule,
     ChatModule,
+    /**
+     * WorkerModule을 AppModule에 등록
+     * 그런데 이렇게만 등록되어있으면 컨슈머 서버인지 프로듀서 서버인지 구분이 안된다.
+     * 컨슈머 작업을 모든 서버가 들고있을 필요가 없음
+     * 그래서 구분을 위해 조건을 통해 WorkerModule이 등록되도록 설정
+     * @nestjs/config의 ConditionalModule을 사용
+     */
+    ConditionalModule.registerWhen(
+      WorkerModule,
+      (env: NodeJS.ProcessEnv) => env['TYPE'] === 'worker',
+    ),
   ], // 다른 모듈을 해당 모듈에서 사용할 떄 등록
   exports: [], // 해당 모듈을 등록한 모듈에서 이곳에 등록한 프로바이더의 기능을 쓸 수 있다.
   controllers: [],
@@ -163,15 +183,15 @@ import { ChatRoom } from './chat/entity/chat-room.entity';
     // 적용된 순서대로 실행된다.
     {
       provide: APP_GUARD,
-      useClass: AuthGuard
+      useClass: AuthGuard,
     },
     {
       provide: APP_GUARD,
-      useClass: RBACGuard
+      useClass: RBACGuard,
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: ResponseTimeInterceptor
+      useClass: ResponseTimeInterceptor,
     },
     // { // 요청횟수초과용 Forbidden 에러 확인을 위해 주석처리
     //   provide: APP_FILTER,
@@ -179,12 +199,12 @@ import { ChatRoom } from './chat/entity/chat-room.entity';
     // },
     {
       provide: APP_FILTER,
-      useClass: QueryFailedExceptionFilter
+      useClass: QueryFailedExceptionFilter,
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: ThrottleInterceptor
-    }
+      useClass: ThrottleInterceptor,
+    },
   ],
 })
 export class AppModule implements NestModule {
