@@ -4,7 +4,8 @@ import {
   JoinColumn,
   JoinTable,
   ManyToMany,
-  ManyToOne, OneToMany,
+  ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -39,9 +40,9 @@ export class Movie extends BaseTimeEntity {
 
   @Column()
   @Transform(({ value }) =>
-    process.env.ENV === 'prod' ?
-      `https://${process.env.BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${value}`
-      : `http://localhost:3000/${value}`
+    process.env.ENV === 'prod'
+      ? `https://${process.env.BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${value}`
+      : `http://localhost:3000/${value}`,
   )
   movieFilePath: string;
 

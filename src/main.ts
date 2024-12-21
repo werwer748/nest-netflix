@@ -8,6 +8,8 @@ import * as ffmpeg from '@ffmpeg-installer/ffmpeg';
 import * as ffprobe from 'ffprobe-static';
 //? ffmpeg 실제 사용
 import * as ffmpegFluent from 'fluent-ffmpeg';
+//? 세션 설정
+import * as session from 'express-session';
 
 //? fluent에 ffmpeg 경로 설정
 ffmpegFluent.setFfmpegPath(ffmpeg.path);
@@ -21,7 +23,6 @@ async function bootstrap() {
     logger: ['debug'],
     // 커스텀한로그(ConsoleLogger를 상속받은 클래스)를 사용하는 방법
     // logger: new DefaultLogger(),
-
   });
 
   //* swagger 세팅하기
@@ -42,7 +43,7 @@ async function bootstrap() {
     swaggerOptions: {
       // 새로고침해도 스웨거인증(로그인) 유지
       persistAuthorization: true,
-    }
+    },
   });
 
   // 모든 요청에 기본적인 prefix를 추가할 수 있다.
@@ -69,7 +70,6 @@ async function bootstrap() {
   //   // 미디어타입 벨류 뒤쪽에 쿼리처럼 붙어서 오는 버전의 키
   //   key: 'v=',
   // });
-
 
   // winston을 사용한 로깅을 위한 설정
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
@@ -111,8 +111,16 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
-    })
-  )
+    }),
+  );
+
+  // 세션 설정
+  app.use(
+    session({
+      // 실제 시크릿값은 환경변수로 등록해 숨겨서 쓰는게 정석적으로 맞음
+      secret: 'secret',
+    }),
+  );
 
   await app.listen(process.env.PORT ?? 3000);
 }

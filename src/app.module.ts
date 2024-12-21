@@ -23,7 +23,6 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthGuard } from './auth/guard/auth.guard';
 import { RBACGuard } from './auth/guard/rbac.guard';
 import { ResponseTimeInterceptor } from './common/interceptor/response-time.interceptor';
-import { ForbiddenExceptionFilter } from './common/filter/forbidden.filter';
 import { QueryFailedExceptionFilter } from './common/filter/query-failed.filter';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -54,6 +53,8 @@ import { WorkerModule } from './worker/worker.module';
         DB_USERNAME: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
         DB_DATABASE: Joi.string().required(),
+        //* prisma url
+        DB_URL: Joi.string().required(),
         HASH_ROUNDS: Joi.number().required(),
         ACCESS_TOKEN_SECRET: Joi.string().required(),
         REFRESH_TOKEN_SECRET: Joi.string().required(),
@@ -70,6 +71,8 @@ import { WorkerModule } from './worker/worker.module';
     TypeOrmModule.forRootAsync({
       // 비동기로 세팅 및 연결
       useFactory: (configService: ConfigService) => ({
+        url: configService.get<string>(dbVariableKeys.dbUrl),
+        // 기존 세팅 유지
         type: configService.get<string>(dbVariableKeys.dbType) as 'postgres',
         host: configService.get<string>(dbVariableKeys.dbHost),
         port: configService.get<number>(dbVariableKeys.dbPort),

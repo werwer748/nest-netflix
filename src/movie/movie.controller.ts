@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
   UseInterceptors,
   VERSION_NEUTRAL,
@@ -111,7 +112,19 @@ export class MovieController {
       }),
     )
     id: number,
+    // 세션 가져오기
+    @Req() req: any,
   ) {
+    const session = req.session;
+
+    const movieCount = session.movieCount ?? {};
+
+    req.session.movieCount = {
+      ...movieCount,
+      [id]: (movieCount[id] ?? 0) + 1,
+    };
+    console.log('session:::', session);
+
     return this.movieService.findOne(id);
   }
 

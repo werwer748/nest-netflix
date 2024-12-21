@@ -1,0 +1,97 @@
+datasource db {
+  // 사용하는 DB
+  provider = "postgresql"
+  // DB 연결 정보 - host, port, user, password, database로 구성 된 URL
+  url      = env("DB_URL")
+}
+
+generator client {
+  // 사용할 Prisma Client
+  provider        = "prisma-client-js"
+  // prismaSchemaFolder: 원하는 경로에 스키마 파일을 생성할 수 있다.
+  // omitApi:  Prisma를 스키마 관리 및 마이그레이션에만 사용하고 클라이언트 API 생성에는 사용하지 않으려는 경우 사용
+  previewFeatures = ["prismaSchemaFolder", "omitApi"]
+}
+
+enum Role {
+  admin
+  paidUser
+  user
+}
+
+model User {
+  // // id String @id @default(uuid()) : @PrimaryGeneratedColumn('uuid')
+  // @id @default(autoincrement()) : @PrimaryGeneratedColumn()
+  id            Int             @id @default(autoincrement())
+  email         String          @unique
+  password      String
+  role          Role            @default(user)
+  createdMovies Movie[]
+  likedMovies   MovieUserLike[]
+  chats         Chat[]
+  chatRooms     ChatRoom[]
+}
+
+model Movie {
+  id            Int             @id @default(autoincrement())
+  title         String          @unique
+  likeCount     Int             @default(0)
+  disLikeCount  Int             @default(0)
+  movieFilePath String
+  // relation
+  detail        MovieDetail     @relation(fields: [detailId], references: [id])
+  detailId      Int             @unique // 1:1 이니까 한쪽에는 unique
+  director      Director        @relation(fields: [directorId], references: [id])
+  directorId    Int
+  genres        Genre[]
+  creator       User            @relation(fields: [creatorId], references: [id])
+  creatorId     Int
+  likedUsers    MovieUserLike[]
+}
+
+model MovieUserLike {
+  movie   Movie   @relation(fields: [movieId], references: [id])
+  movieId Int
+  user    User    @relation(fields: [userId], references: [id])
+  userId  Int
+  isLike  Boolean
+
+  // movieId와 userId를 조합하여 프라이머리 키로 사용
+  @@id([movieId, userId])
+}
+
+model MovieDetail {
+  id     Int    @id @default(autoincrement())
+  detail String
+  // 1:1 관계에서 한쪽은 ?로 설정 -> nullable만 가능??
+  movie  Movie?
+}
+
+model Chat {
+  id         Int      @id @default(autoincrement())
+  author     User     @relation(fields: [authorId], references: [id])
+  authorId   Int
+  message    String
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id])
+  chatRoomId Int
+}
+
+model ChatRoom {
+  id    Int    @id @default(autoincrement())
+  users User[]
+  chats Chat[]
+}
+
+model Genre {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  movies Movie[]
+}
+
+model Director {
+  id          Int      @id @default(autoincrement())
+  name        String
+  dob         DateTime
+  nationality String
+  movies      Movie[]
+}
