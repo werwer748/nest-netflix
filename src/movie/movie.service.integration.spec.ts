@@ -35,16 +35,9 @@ describe('MovieService - Integration Test', () => {
           type: 'sqlite',
           database: ':memory:', // 메모리에 DB를 생성할 수있는 옵션! h2 mem..?
           dropSchema: true, // 연결 종료시 스키마 삭제
-          entities: [
-            Movie,
-            MovieDetail,
-            Director,
-            Genre,
-            User,
-            MovieUserLike,
-          ],
+          entities: [Movie, MovieDetail, Director, Genre, User, MovieUserLike],
           synchronize: true,
-          logging: false
+          logging: false,
         }),
         //
         TypeOrmModule.forFeature([
@@ -87,7 +80,7 @@ describe('MovieService - Integration Test', () => {
       return userRepository.create({
         id: x,
         email: `${x}@test.com`,
-        password: `123123`
+        password: `123123`,
       });
     });
     await userRepository.save(users);
@@ -97,7 +90,7 @@ describe('MovieService - Integration Test', () => {
         id: x,
         dob: new Date('1993-05-07'),
         nationality: 'South Korea',
-        name: `Director Name${x}`
+        name: `Director Name${x}`,
       });
     });
     await directorRepository.save(directors);
@@ -105,12 +98,12 @@ describe('MovieService - Integration Test', () => {
     genres = [1, 2].map((x) => {
       return genreRepository.create({
         id: x,
-        name: `Genre ${x}`
+        name: `Genre ${x}`,
       });
     });
     await genreRepository.save(genres);
 
-    movies = Array.from({length: 15}, (v, i) => {
+    movies = Array.from({ length: 15 }, (v, i) => {
       const movieNum = i + 1;
       return movieRepository.create({
         id: movieNum,
@@ -120,11 +113,11 @@ describe('MovieService - Integration Test', () => {
         likeCount: 0,
         disLikeCount: 0,
         detail: movieDetailRepository.create({
-          detail: `Movie Detail ${movieNum}`
+          detail: `Movie Detail ${movieNum}`,
         }),
         movieFilePath: 'movies/movie1.mp4',
         director: directors[0],
-        createdAt: new Date(`2024-10-${movieNum}`)
+        createdAt: new Date(`2024-10-${movieNum}`),
       });
     });
     await movieRepository.save(movies);
@@ -132,11 +125,13 @@ describe('MovieService - Integration Test', () => {
 
   describe('findRecent', () => {
     it('should return recent movies', async () => {
-      const result = await service.findRecent() as Movie[];
+      const result = (await service.findRecent()) as Movie[];
 
       let sortedResult = [...movies];
       // 최신순 정렬
-      sortedResult.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      sortedResult.sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
       let sortedResultIds = sortedResult.slice(0, 10).map((x) => x.id);
 
       expect(result).toHaveLength(10);
@@ -144,7 +139,7 @@ describe('MovieService - Integration Test', () => {
     });
 
     it('should cache recent movies', async () => {
-      const result = await service.findRecent() as Movie[];
+      const result = (await service.findRecent()) as Movie[];
 
       const cachedData = await cacheManager.get('MOVIE_RECENT');
       expect(cachedData).toEqual(result);
@@ -156,8 +151,8 @@ describe('MovieService - Integration Test', () => {
       const dto: GetMoviesDto = {
         order: ['createdAt_DESC'],
         take: 10,
-        title: 'Movie 15'
-      }
+        title: 'Movie 15',
+      };
 
       const result = await service.findAll(dto);
 
@@ -169,7 +164,7 @@ describe('MovieService - Integration Test', () => {
     it('should return likeStatus if userId is provided', async () => {
       const dto: GetMoviesDto = {
         order: ['createdAt_DESC'],
-        take: 10
+        take: 10,
       };
 
       const result = await service.findAll(dto, users[0].id);
@@ -206,17 +201,17 @@ describe('MovieService - Integration Test', () => {
         directorId: directors[0].id,
         genreIds: genres.map((v) => v.id),
         movieFileName: 'test.mp4',
-      }
+      };
 
       const result = await service.create(
         createMovieDto,
         users[0].id,
-        dataSource.createQueryRunner()
+        dataSource.createQueryRunner(),
       );
 
       expect(result.title).toBe(createMovieDto.title);
       expect(result.director.id).toBe(createMovieDto.directorId);
-      expect(result.genres.map(v => v.id)).toEqual(createMovieDto.genreIds);
+      expect(result.genres.map((v) => v.id)).toEqual(createMovieDto.genreIds);
       expect(result.detail.detail).toBe(createMovieDto.detail);
     });
   });
@@ -229,7 +224,7 @@ describe('MovieService - Integration Test', () => {
         title: 'Changed Title',
         detail: 'Changed Detail',
         directorId: directors[1].id,
-        genreIds: [genres[0].id]
+        genreIds: [genres[0].id],
       };
 
       const result = await service.update(movieId, updateMovieDto);
@@ -237,28 +232,30 @@ describe('MovieService - Integration Test', () => {
       expect(result.title).toBe(updateMovieDto.title);
       expect(result.detail.detail).toBe(updateMovieDto.detail);
       expect(result.director.id).toBe(updateMovieDto.directorId);
-      expect(result.genres.map(v => v.id)).toEqual(updateMovieDto.genreIds);
+      expect(result.genres.map((v) => v.id)).toEqual(updateMovieDto.genreIds);
     });
 
     it('should throw error if movie does not exists', async () => {
       const updateMovieDto: UpdateMovieDto = {
-        title: 'Change'
+        title: 'Change',
       };
 
-      await expect(service.update(99999, updateMovieDto)).rejects.toThrow(NotFoundException);
+      await expect(service.update(99999, updateMovieDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('remove', () => {
     it('should remove movie correctly', async () => {
       const removeId = movies[0].id;
-      const result = await service.delete(removeId);
+      const result = await service.remove(removeId);
 
       expect(result).toBe(removeId);
     });
 
     it('should throw error if movie does not exist', async () => {
-      await expect(service.delete(150)).rejects.toThrow(NotFoundException);
+      await expect(service.remove(150)).rejects.toThrow(NotFoundException);
     });
   });
 

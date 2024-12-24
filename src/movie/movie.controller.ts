@@ -21,7 +21,7 @@ import { UpdateMovieDto } from './dto/update-movie.dto';
 import { AuthGuard } from '../auth/guard/auth.guard';
 import { Public } from '../auth/decorator/public.decorator';
 import { RBAC } from '../auth/decorator/rbac.decorator';
-import { Role } from '../user/entity/user.entity';
+// import { Role } from '../user/entity/user.entity';
 import { GetMoviesDto } from './dto/get-movies.dto';
 import { TransactionInterceptor } from '../common/interceptor/transaction.interceptor';
 import { UserId } from '../user/decorator/user-id.decorator';
@@ -37,6 +37,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 
 @Controller('movie')
 @ApiBearerAuth()
@@ -131,13 +132,17 @@ export class MovieController {
   @Post()
   @RBAC([Role.admin])
   @UseGuards(AuthGuard)
-  @UseInterceptors(TransactionInterceptor)
+  // @UseInterceptors(TransactionInterceptor)
   postMovie(
-    @QueryRuunerDeco() qr: QueryRunner,
+    // @QueryRuunerDeco() qr: QueryRunner,
     @Body() body: CreateMovieDto,
     @UserId() userId: number,
   ) {
-    return this.movieService.create(body, userId, qr);
+    return this.movieService.create(
+      body,
+      userId,
+      // qr
+    );
   }
 
   @Patch(':id')
@@ -152,7 +157,7 @@ export class MovieController {
   @Delete(':id')
   @RBAC([Role.admin])
   deleteMovie(@Param('id', ParseIntPipe) id: number) {
-    return this.movieService.delete(id);
+    return this.movieService.remove(id);
   }
 
   //* 좋아요!

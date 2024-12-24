@@ -659,7 +659,7 @@ describe('MovieService', () => {
         .mockResolvedValue(movieDetail as MovieDetail);
       jest.spyOn(movieDetailRepository, 'remove').mockResolvedValue(undefined);
 
-      await expect(movieService.delete(1)).resolves.toBe(movieDetail.movie.id);
+      await expect(movieService.remove(1)).resolves.toBe(movieDetail.movie.id);
       expect(movieDetailRepository.findOne).toHaveBeenCalledWith({
         where: {
           movie: {
@@ -672,7 +672,7 @@ describe('MovieService', () => {
     it('should throw NotFoundException if movieDetail does not exist', async () => {
       jest.spyOn(movieDetailRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(movieService.delete(1)).rejects.toThrow(NotFoundException);
+      await expect(movieService.remove(1)).rejects.toThrow(NotFoundException);
     });
   });
 

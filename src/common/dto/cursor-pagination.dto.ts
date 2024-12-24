@@ -17,12 +17,10 @@ export class CursorPaginationDto {
   @IsOptional()
   @ApiProperty({
     description: '내림차 또는 오름차 정렬',
-    example: ['id_DESC']
+    example: ['id_DESC'],
     // required: false,
   })
-  @Transform(({ value }) => (
-    Array.isArray(value) ? value : [value]
-  ))
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
   // [likeCount_DESC, id_DESC]
   order: string[] = ['id_DESC'];
 
@@ -33,5 +31,5 @@ export class CursorPaginationDto {
     example: 5,
     // required: false,
   })
-  take: number = 5;
+  take: number = 2;
 }

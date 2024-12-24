@@ -1,24 +1,29 @@
-import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Role, User } from '../user/entity/user.entity';
-import { Repository } from 'typeorm';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { authVariableKeys } from '../common/const/auth.const';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { UserService } from '../user/user.service';
+import { PrismaService } from '../common/prisma.service';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    // @InjectRepository(User)
+    // private readonly userRepository: Repository<User>,
     private readonly userService: UserService,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
+    private readonly prisma: PrismaService,
   ) {}
 
   async tokenBlock(token: string) {
@@ -33,11 +38,11 @@ export class AuthService {
     await this.cacheManager.set(
       `BLOCK_TOKEN_${token}`,
       payload,
-      Math.max((differenceInSeconds) * 1000, 1),
+      Math.max(differenceInSeconds * 1000, 1),
     );
 
     return true;
-  };
+  }
 
   parseBasicToken(rawToken: string) {
     const basicSplit = rawToken.split(' ');
@@ -80,8 +85,9 @@ export class AuthService {
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get<string>(
-          isRefreshToken ?
-            authVariableKeys.refreshTokenSecret : authVariableKeys.accessTokenSecret
+          isRefreshToken
+            ? authVariableKeys.refreshTokenSecret
+            : authVariableKeys.accessTokenSecret,
         ),
       });
 
@@ -96,7 +102,7 @@ export class AuthService {
       }
 
       return payload;
-    } catch(e) {
+    } catch (e) {
       throw new UnauthorizedException('토큰이 만료되었습니다.');
     }
   }
@@ -111,11 +117,20 @@ export class AuthService {
   }
 
   async authenticate(email: string, password: string) {
-    const user = await this.userRepository.findOne({
+    const user = await this.prisma.user.findUnique({
       where: {
         email,
       },
+      omit: {
+        password: false,
+      },
     });
+
+    // const user = await this.userRepository.findOne({
+    //   where: {
+    //     email,
+    //   },
+    // });
 
     if (!user) {
       throw new BadRequestException('잘못된 로그인 정보입니다.');
@@ -130,11 +145,14 @@ export class AuthService {
     return user;
   }
 
-  async issueToken(user: { id: number, role: Role }, isRefreshToken: boolean) {
-    const refreshTokenSecret =
-      this.configService.get<string>(authVariableKeys.refreshTokenSecret);
-    const accessTokenSecret =
-      this.configService.get<string>(authVariableKeys.accessTokenSecret);
+  //* Role은 기존 TypeORM과 다르게 @prisma/client에서 가져와야함
+  async issueToken(user: { id: number; role: Role }, isRefreshToken: boolean) {
+    const refreshTokenSecret = this.configService.get<string>(
+      authVariableKeys.refreshTokenSecret,
+    );
+    const accessTokenSecret = this.configService.get<string>(
+      authVariableKeys.accessTokenSecret,
+    );
 
     return this.jwtService.signAsync(
       {

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -7,25 +11,33 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { authVariableKeys } from '../common/const/auth.const';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../common/prisma.service';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    private readonly configService: ConfigService
-  ) {
-  }
+    // @InjectRepository(User)
+    // private readonly userRepository: Repository<User>,
+
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {}
   async create(createUserDto: CreateUserDto) {
     const { email, password } = createUserDto;
 
-    const checkEmail = await this.userRepository.exists({
+    const user = await this.prisma.user.findUnique({
       where: {
         email,
       },
     });
 
-    if (checkEmail) {
+    // const checkEmail = await this.userRepository.exists({
+    //   where: {
+    //     email,
+    //   },
+    // });
+
+    if (user) {
       throw new BadRequestException('이미 존재하는 이메일입니다!');
     }
 
@@ -34,28 +46,51 @@ export class UserService {
       this.configService.get<number>(authVariableKeys.hashRounds),
     );
 
-    await this.userRepository.save({
-      email,
-      password: hash,
+    await this.prisma.user.create({
+      data: {
+        email,
+        password: hash,
+      },
     });
+    // await this.userRepository.save({
+    //   email,
+    //   password: hash,
+    // });
 
-    return this.userRepository.findOne({
+    return this.prisma.user.findUnique({
       where: {
         email,
       },
     });
+    // return this.userRepository.findOne({
+    //   where: {
+    //     email,
+    //   },
+    // });
   }
 
   findAll() {
-    return this.userRepository.find();
+    return this.prisma.user.findMany({
+      // 정석적인 필드 제외하는 방법
+      omit: {
+        password: true,
+      },
+    });
+    // return this.userRepository.find();
   }
 
   async findOne(id: number) {
-    const user = await this.userRepository.findOne({
+    const user = await this.prisma.user.findUnique({
       where: {
-        id
-      }
+        id,
+      },
     });
+
+    // const user = await this.userRepository.findOne({
+    //   where: {
+    //     id,
+    //   },
+    // });
 
     if (!user) {
       throw new NotFoundException('존재하지 않는 사용자 입니다.');
@@ -66,48 +101,81 @@ export class UserService {
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     const { password } = updateUserDto;
-    
-    const user = await this.userRepository.findOne({
+
+    const user = await this.prisma.user.findUnique({
       where: {
-        id
-      }
+        id,
+      },
     });
+    // const user = await this.userRepository.findOne({
+    //   where: {
+    //     id,
+    //   },
+    // });
 
     if (!user) {
       throw new NotFoundException('존재하지 않는 사용자 입니다.');
     }
 
-    const hashedPassword = await bcrypt.hash(
-      password, 
-      this.configService.get<number>(authVariableKeys.hashRounds)
-    );
-    
-    await this.userRepository.update(
-      { id },
-      {
-        ...updateUserDto,
-        password: hashedPassword
-      });
+    const updateValues = {
+      ...updateUserDto,
+    };
 
-    return this.userRepository.findOne({
+    if (password) {
+      updateValues.password = await bcrypt.hash(
+        password,
+        this.configService.get<number>(authVariableKeys.hashRounds),
+      );
+    }
+
+    await this.prisma.user.update({
       where: {
-        id
-      }
+        id,
+      },
+      data: updateValues,
     });
+    // await this.userRepository.update(
+    //   { id },
+    //   {
+    //     ...updateUserDto,
+    //     password: hashedPassword,
+    //   },
+    // );
+
+    return this.prisma.user.findUnique({
+      where: {
+        id,
+      },
+    });
+    // return this.userRepository.findOne({
+    //   where: {
+    //     id,
+    //   },
+    // });
   }
 
   async remove(id: number) {
-    const user = await this.userRepository.findOne({
+    const user = await this.prisma.user.findUnique({
       where: {
-        id
-      }
+        id,
+      },
     });
+    // const user = await this.userRepository.findOne({
+    //   where: {
+    //     id,
+    //   },
+    // });
 
     if (!user) {
       throw new NotFoundException('존재하지 않는 사용자 입니다.');
     }
 
-    await this.userRepository.delete(id);
+    await this.prisma.user.delete({
+      where: {
+        id,
+      },
+    });
+    // await this.userRepository.delete(id);
 
     return id;
   }

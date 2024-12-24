@@ -12,6 +12,7 @@ import { DefaultLogger } from './logger/default.logger';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { redisVariableKeys } from './const/redis.const';
+import { PrismaService } from './prisma.service';
 
 @Module({
   imports: [
@@ -56,7 +57,7 @@ import { redisVariableKeys } from './const/redis.const';
     }),
   ],
   controllers: [CommonController],
-  providers: [CommonService, TasksService, DefaultLogger],
-  exports: [CommonService, DefaultLogger],
+  providers: [CommonService, TasksService, DefaultLogger, PrismaService],
+  exports: [CommonService, DefaultLogger, PrismaService],
 })
 export class CommonModule {}

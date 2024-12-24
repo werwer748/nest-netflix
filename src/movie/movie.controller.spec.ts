@@ -9,7 +9,6 @@ import { QueryRunner } from 'typeorm';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { BadRequestException } from '@nestjs/common';
 
-
 describe('MovieController', () => {
   let movieController: MovieController;
   let movieService: jest.Mocked<MovieService>;
@@ -18,7 +17,7 @@ describe('MovieController', () => {
     const { unit, unitRef } = TestBed.create(MovieController).compile();
 
     movieController = unit;
-    movieService = unitRef.get(MovieService)
+    movieService = unitRef.get(MovieService);
   });
 
   afterEach(() => {
@@ -33,7 +32,7 @@ describe('MovieController', () => {
     it('should call movieService.findAll with correct parameters', async () => {
       const dto = { page: 1, limit: 10 };
       const userId = 1;
-      const movies = [{ id: 1 }, { id: 2 }]
+      const movies = [{ id: 1 }, { id: 2 }];
 
       jest.spyOn(movieService, 'findAll').mockResolvedValue(movies as any);
 
@@ -46,7 +45,7 @@ describe('MovieController', () => {
 
   describe('getMoviesRecent', () => {
     it('should call movieService.findRecent with correct parameters', async () => {
-      const movies = [{ id: 1 }, { id: 2 }]
+      const movies = [{ id: 1 }, { id: 2 }];
 
       jest.spyOn(movieService, 'findRecent').mockResolvedValue(movies as any);
 
@@ -80,11 +79,11 @@ describe('MovieController', () => {
       expect(movieService.create).toHaveBeenCalledWith(
         body,
         userId,
-        queryRunner
+        queryRunner,
       );
     });
   });
-  
+
   describe('patchMovie', () => {
     it('should call movieService.update with the correct parameters', async () => {
       const id = 1;
@@ -93,7 +92,7 @@ describe('MovieController', () => {
       await movieController.patchMovie(id, body);
 
       expect(movieService.update).toHaveBeenCalledWith(id, body);
-    }); 
+    });
   });
 
   describe('deleteMovie', () => {
@@ -102,7 +101,7 @@ describe('MovieController', () => {
 
       await movieController.deleteMovie(id);
 
-      expect(movieService.delete).toHaveBeenCalledWith(id);
+      expect(movieService.remove).toHaveBeenCalledWith(id);
     });
   });
 
@@ -113,7 +112,11 @@ describe('MovieController', () => {
 
       await movieController.createMovieLike(movieId, userId);
 
-      expect(movieService.toggleMovieLike).toHaveBeenCalledWith(movieId, userId, true);
+      expect(movieService.toggleMovieLike).toHaveBeenCalledWith(
+        movieId,
+        userId,
+        true,
+      );
     });
   });
 
@@ -124,7 +127,11 @@ describe('MovieController', () => {
 
       await movieController.createMovieDisLike(movieId, userId);
 
-      expect(movieService.toggleMovieLike).toHaveBeenCalledWith(movieId, userId, false);
+      expect(movieService.toggleMovieLike).toHaveBeenCalledWith(
+        movieId,
+        userId,
+        false,
+      );
     });
   });
 });

@@ -72,13 +72,13 @@ import { WorkerModule } from './worker/worker.module';
       // 비동기로 세팅 및 연결
       useFactory: (configService: ConfigService) => ({
         url: configService.get<string>(dbVariableKeys.dbUrl),
-        // 기존 세팅 유지
+        // 기존 세팅 방식
         type: configService.get<string>(dbVariableKeys.dbType) as 'postgres',
-        host: configService.get<string>(dbVariableKeys.dbHost),
-        port: configService.get<number>(dbVariableKeys.dbPort),
-        username: configService.get<string>(dbVariableKeys.dbUsername),
-        password: configService.get<string>(dbVariableKeys.dbPassword),
-        database: configService.get<string>(dbVariableKeys.dbDatabase),
+        // host: configService.get<string>(dbVariableKeys.dbHost),
+        // port: configService.get<number>(dbVariableKeys.dbPort),
+        // username: configService.get<string>(dbVariableKeys.dbUsername),
+        // password: configService.get<string>(dbVariableKeys.dbPassword),
+        // database: configService.get<string>(dbVariableKeys.dbDatabase),
         entities: [
           Movie,
           MovieDetail,
