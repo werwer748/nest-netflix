@@ -12,18 +12,23 @@ import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../common/prisma.service';
 import { Role } from '@prisma/client';
+import { InjectModel } from '@nestjs/mongoose';
+import { User } from '../user/schema/user.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class AuthService {
   constructor(
     // @InjectRepository(User)
     // private readonly userRepository: Repository<User>,
+    // private readonly prisma: PrismaService,
     private readonly userService: UserService,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
-    private readonly prisma: PrismaService,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
   ) {}
 
   async tokenBlock(token: string) {
@@ -110,22 +115,32 @@ export class AuthService {
   async register(rawToken: string) {
     const { email, password } = this.parseBasicToken(rawToken);
 
-    return this.userService.create({
+    return await this.userService.create({
       email,
       password,
     });
   }
 
   async authenticate(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({
-      where: {
-        email,
-      },
-      omit: {
-        password: false,
-      },
-    });
+    //* Mongoose
+    const user = await this.userModel
+      .findOne(
+        { email },
+        { password: 1, role: 1 }, // password, role 함께 가져나오기
+      )
+      .exec();
 
+    //* Prisma
+    // const user = await this.prisma.user.findUnique({
+    //   where: {
+    //     email,
+    //   },
+    //   omit: {
+    //     password: false,
+    //   },
+    // });
+
+    //* TypeORM
     // const user = await this.userRepository.findOne({
     //   where: {
     //     email,
@@ -146,7 +161,9 @@ export class AuthService {
   }
 
   //* Role은 기존 TypeORM과 다르게 @prisma/client에서 가져와야함
-  async issueToken(user: { id: number; role: Role }, isRefreshToken: boolean) {
+  // async issueToken(user: { id: number; role: Role }, isRefreshToken: boolean) {
+  //? MongoDB에서 id -> _id, ObjectId는 unknown이 계속 찍혀서 any로 처리
+  async issueToken(user: { _id: any; role: Role }, isRefreshToken: boolean) {
     const refreshTokenSecret = this.configService.get<string>(
       authVariableKeys.refreshTokenSecret,
     );
@@ -156,7 +173,7 @@ export class AuthService {
 
     return this.jwtService.signAsync(
       {
-        sub: user.id,
+        sub: user._id,
         role: user.role,
         type: isRefreshToken ? 'refresh' : 'access',
       },

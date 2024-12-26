@@ -38,6 +38,7 @@ import { ChatModule } from './chat/chat.module';
 import { Chat } from './chat/entity/chat.entity';
 import { ChatRoom } from './chat/entity/chat-room.entity';
 import { WorkerModule } from './worker/worker.module';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
@@ -103,6 +104,10 @@ import { WorkerModule } from './worker/worker.module';
       }),
       inject: [ConfigService],
     }),
+    //* Mongoose로 MongoDB 연결
+    MongooseModule.forRoot(
+      'mongodb+srv://test:test@nestjsmongo.6nc18.mongodb.net/?retryWrites=true&w=majority&appName=NestJSMongo',
+    ),
     ServeStaticModule.forRoot({
       /**
        * rootPath: 스태틱파일 루트 경로

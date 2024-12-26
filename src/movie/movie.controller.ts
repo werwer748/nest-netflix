@@ -43,7 +43,7 @@ import { Role } from '@prisma/client';
 @ApiBearerAuth()
 @ApiTags('movie')
 // @ApiExcludeController()
-@UseInterceptors(ClassSerializerInterceptor)
+// @UseInterceptors(ClassSerializerInterceptor)
 export class MovieController {
   constructor(private readonly movieService: MovieService) {}
 
@@ -105,14 +105,15 @@ export class MovieController {
     //* pipe에 대한 커스텀 에러 처리
     @Param(
       'id',
-      new ParseIntPipe({
-        /* istanbul ignore next */
-        exceptionFactory(error) {
-          throw new BadRequestException('id는 숫자여야 합니다.');
-        },
-      }),
-    )
-    id: number,
+      //? mongoose _id -> string
+      // new ParseIntPipe({
+      //   /* istanbul ignore next */
+      //   exceptionFactory(error) {
+      //     throw new BadRequestException('id는 숫자여야 합니다.');
+      //   },
+      // }),
+    ) // id: number,
+    id: string,
     // 세션 가져오기
     @Req() req: any,
   ) {
@@ -124,7 +125,6 @@ export class MovieController {
       ...movieCount,
       [id]: (movieCount[id] ?? 0) + 1,
     };
-    console.log('session:::', session);
 
     return this.movieService.findOne(id);
   }
@@ -148,7 +148,9 @@ export class MovieController {
   @Patch(':id')
   @RBAC([Role.admin])
   patchMovie(
-    @Param('id', ParseIntPipe) id: number,
+    // @Param('id', ParseIntPipe) id: number,
+    //? mongoose _id -> string
+    @Param('id') id: string,
     @Body() body: UpdateMovieDto,
   ) {
     return this.movieService.update(id, body);
@@ -156,7 +158,9 @@ export class MovieController {
 
   @Delete(':id')
   @RBAC([Role.admin])
-  deleteMovie(@Param('id', ParseIntPipe) id: number) {
+  // deleteMovie(@Param('id', ParseIntPipe) id: number) {
+  //? mongoose _id -> string
+  deleteMovie(@Param('id') id: string) {
     return this.movieService.remove(id);
   }
 
@@ -164,16 +168,22 @@ export class MovieController {
   // @ApiExcludeEndpoint()
   @Post(':id/like')
   createMovieLike(
-    @Param('id', ParseIntPipe) movieId: number,
-    @UserId() userId: number,
+    // @Param('id', ParseIntPipe) movieId: number,
+    // @UserId() userId: number,
+    //? mongoose _id -> string
+    @Param('id') movieId: string,
+    @UserId() userId: string,
   ) {
     return this.movieService.toggleMovieLike(movieId, userId, true);
   }
   //* 별로에요!
   @Post(':id/dislike')
   createMovieDisLike(
-    @Param('id', ParseIntPipe) movieId: number,
-    @UserId() userId: number,
+    // @Param('id', ParseIntPipe) movieId: number,
+    // @UserId() userId: number,
+    //? mongoose _id -> string
+    @Param('id') movieId: string,
+    @UserId() userId: string,
   ) {
     return this.movieService.toggleMovieLike(movieId, userId, false);
   }

@@ -4,7 +4,8 @@ import {
   Controller,
   Delete,
   Get,
-  Param, ParseIntPipe,
+  Param,
+  ParseIntPipe,
   Patch,
   Post,
   UseInterceptors,
@@ -16,8 +17,9 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @Controller('director')
 @ApiBearerAuth()
-@UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('director')
+//? mongoose와 충돌 방지
+// @UseInterceptors(ClassSerializerInterceptor)
 export class DirectorController {
   constructor(private readonly directorService: DirectorService) {}
 
@@ -27,27 +29,31 @@ export class DirectorController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  // findOne(@Param('id', ParseIntPipe) id: number) {
+  //? mongoose _id -> string
+  findOne(@Param('id') id: string) {
     return this.directorService.findOne(id);
   }
 
   @Post()
-  create(
-    @Body() createDirectorDto: CreateDirectorDto
-  ) {
+  create(@Body() createDirectorDto: CreateDirectorDto) {
     return this.directorService.create(createDirectorDto);
   }
 
   @Patch(':id')
   update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateDirectorDto: UpdateDirectorDto
+    // @Param('id', ParseIntPipe) id: number,
+    //? mongoose _id -> string
+    @Param('id') id: string,
+    @Body() updateDirectorDto: UpdateDirectorDto,
   ) {
     return this.directorService.update(id, updateDirectorDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  // remove(@Param('id', ParseIntPipe) id: number) {
+  //? mongoose _id -> string
+  remove(@Param('id') id: string) {
     return this.directorService.remove(id);
   }
 }

@@ -7,7 +7,8 @@ import {
   Param,
   Delete,
   UseInterceptors,
-  ClassSerializerInterceptor, ParseIntPipe,
+  ClassSerializerInterceptor,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { GenreService } from './genre.service';
 import { CreateGenreDto } from './dto/create-genre.dto';
@@ -17,7 +18,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 @Controller('genre')
 @ApiBearerAuth()
 @ApiTags('genre')
-@UseInterceptors(ClassSerializerInterceptor)
+//? mongoose와 충돌 방지
+// @UseInterceptors(ClassSerializerInterceptor)
 export class GenreController {
   constructor(private readonly genreService: GenreService) {}
 
@@ -32,20 +34,26 @@ export class GenreController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  // findOne(@Param('id', ParseIntPipe) id: number) {
+  //? mongoose _id -> string
+  findOne(@Param('id') id: string) {
     return this.genreService.findOne(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateGenreDto: UpdateGenreDto
+    // @Param('id', ParseIntPipe) id: number,
+    //? mongoose _id -> string
+    @Param('id') id: string,
+    @Body() updateGenreDto: UpdateGenreDto,
   ) {
     return this.genreService.update(id, updateGenreDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  // remove(@Param('id', ParseIntPipe) id: number) {
+  //? mongoose _id -> string
+  remove(@Param('id') id: string) {
     return this.genreService.remove(id);
   }
 }

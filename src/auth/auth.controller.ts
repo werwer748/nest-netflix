@@ -42,14 +42,13 @@ export class AuthController {
   }
 
   @Post('token/block')
-  blockToken(
-    @Body('token') token: string,
-  ) {
+  blockToken(@Body('token') token: string) {
     return this.authService.tokenBlock(token);
   }
 
   @Post('token/access')
-  async rotateAccessToken(@Req() req: IReqestUser) {
+  // async rotateAccessToken(@Req() req: IReqestUser) {
+  async rotateAccessToken(@Req() req) {
     return {
       accessToken: await this.authService.issueToken(req.user, false),
     };
@@ -60,7 +59,8 @@ export class AuthController {
   // @UseGuards(AuthGuard('codefactory'))
   //* 'local' 전략을 사용하는 가드를 상속하는 가드를 만들어서 사용할 수 있다.
   @UseGuards(LocalAuthGuard)
-  async loginUserPassport(@Req() req: IReqestUser) {
+  // async loginUserPassport(@Req() req: IReqestUser) {
+  async loginUserPassport(@Req() req) {
     return {
       accessToken: await this.authService.issueToken(req.user, false),
       refreshToken: await this.authService.issueToken(req.user, true),
